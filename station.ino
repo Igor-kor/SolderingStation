@@ -1,25 +1,36 @@
 #include <PID_v1.h>
-#define CYCLE_1_TIME 10    // время цикла 1 ( * 2 = 10 мс)
+// время цикла 1 ( * 2 = 10 мс)
+#define CYCLE_1_TIME 10
+//делитель для выстовления температуры 1024/DIVISOR_TEMP  - максимальная температура
+#define DIVISOR_TEMP 2
 
+//нужно сделать 2 функции on & off одна будет включать нагрев фена другая выключать
+//но при этом он должен продуваться и после остывания отключиться
+//также нужно сделать определения подключения фена в разьем
 class Thermofan {
     // Пин термопары(операционного усилителя)
     int thermocouplePin = A0;
-    // Пин потенциометра температуры нагрева
-    int potentiometerPin = A1;
     // Значение температуры нагрева
     int thermocoupleValue = 0;
+
+    // Пин потенциометра температуры нагрева
+    int potentiometerPin = A1;
     // Пин оптопары нагрева фена
     int optronPin = 9;
+
     // Задержка для показа выставляемой температуры
     int outValuePotentiometer = 0;
     // Предыдущее значение выставленной температуры
     int oldTemperature = 0;
+    // Таймер вывода значений температуры на дисплей
+    byte timerEcho = 0;
+
     // Пин геркона
     int hermeticContactPin = 10;
     // Значение геркона
     bool hermeticContactState = false;
-    // Таймер вывода значений температуры на дисплей
-    byte timerEcho = 0;
+
+
     // Для пид регулировки
     double Input , Setpoint, Output;
     // Оптимальные значения 0.5 0 0.7
@@ -37,33 +48,37 @@ class Thermofan {
       this->Input = this->thermocoupleValue;
     }
 
-    int readValueTemperature(){
-      return 50;
-      return analogRead(this->potentiometerPin) / 2;
+    //чтение заданой температуры с потенциометра
+    int readValueTemperature() {
+      return analogRead(this->potentiometerPin) / DIVISOR_TEMP;
     }
 
+    //чтение значения с потенциометра
+    //todo: нужно переделать под разные потенциометры их может быть несколько
     void readPotentiometr() {
-       this->Setpoint = this->readValueTemperature();
+      this->Setpoint = this->readValueTemperature();
       if (abs(this->Setpoint - this->oldTemperature) > 5) {
         this->outValuePotentiometer = 100;
       }
       this->oldTemperature = this->Setpoint;
     }
 
+    //нагрев фена
     void warming() {
       //если температура задана ниже 20 то не будем ничего нагревать
       if (this->Setpoint < 20 || this->hermeticContactState) {
-        // Делаем расчет значения для пид
-        this->fanpid->Compute();
         analogWrite(this->optronPin, LOW);
         digitalWrite(13, LOW);
         return;
       }
+      // Делаем расчет значения для пид
+      this->fanpid->Compute();
       //нагрев тена
       digitalWrite(13, HIGH);
       analogWrite(this->optronPin, Output);
     }
 
+    //вывод на 7 сегментный индикатор температуры
     void echo () {
       if ( this->timerEcho >= CYCLE_1_TIME ) {
         this->timerEcho = 0;
@@ -77,12 +92,13 @@ class Thermofan {
       this->timerEcho++;
     }
 
+    //
     void echoDisplay(int) {
       return;
     }
 
   public:
-
+    //устанавливаем все значения для термофена
     Thermofan() {
       this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.5, 0, 0.7, DIRECT);
       pinMode(optronPin, OUTPUT);
