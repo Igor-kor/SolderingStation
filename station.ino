@@ -7,6 +7,7 @@
 //нужно сделать 2 функции on & off одна будет включать нагрев фена другая выключать
 //но при этом он должен продуваться и после остывания отключиться
 //также нужно сделать определения подключения фена в разьем
+//при разогреве сверх ххх температуры отключить нагрев, сообщить о неисправности
 class Thermofan {
     // Пин термопары(операционного усилителя)
     int thermocouplePin = A0;
@@ -30,6 +31,13 @@ class Thermofan {
     // Значение геркона
     bool hermeticContactState = false;
 
+    //включен ли нагрев фена
+    bool warmingFan = true;
+    //пин кнопки включения нагрева фена
+    int warmingButton = 4;
+
+    //индикатор нагрева фена
+    int warmingLed = 13;
 
     // Для пид регулировки
     double Input , Setpoint, Output;
@@ -50,6 +58,7 @@ class Thermofan {
 
     //чтение заданой температуры с потенциометра
     int readValueTemperature() {
+//      return 100;
       return analogRead(this->potentiometerPin) / DIVISOR_TEMP;
     }
 
@@ -63,22 +72,35 @@ class Thermofan {
       this->oldTemperature = this->Setpoint;
     }
 
+    void readhermeticContactState(){
+      this->hermeticContactState = !digitalRead(this->hermeticContactPin);
+    }
+
     //нагрев фена
     void warming() {
       //если температура задана ниже 20 то не будем ничего нагревать
-      if (this->Setpoint < 20 || this->hermeticContactState) {
+      //или если фен лежит на подставке
+      //или если нагрев выключен
+
+      //todo: нужно сделать пин для реле и нормальную логику
+       if (this->Setpoint < 20 || this->thermocoupleValue > 500 || this->hermeticContactState){
+        digitalWrite(4,LOW);
+       }else{
+        digitalWrite(4,HIGH);
+       }
+      if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan) {
+        digitalWrite(this->warmingLed, LOW);
         analogWrite(this->optronPin, LOW);
-        digitalWrite(13, LOW);
-        return;
+      } else {
+        // Делаем расчет значения для пид
+        this->fanpid->Compute();
+        //нагрев тена
+        digitalWrite(this->warmingLed, HIGH);
+        analogWrite(this->optronPin, Output);
       }
-      // Делаем расчет значения для пид
-      this->fanpid->Compute();
-      //нагрев тена
-      digitalWrite(13, HIGH);
-      analogWrite(this->optronPin, Output);
     }
 
-    //вывод на 7 сегментный индикатор температуры
+    //вывод температуры
     void echo () {
       if ( this->timerEcho >= CYCLE_1_TIME ) {
         this->timerEcho = 0;
@@ -92,8 +114,9 @@ class Thermofan {
       this->timerEcho++;
     }
 
-    //
-    void echoDisplay(int) {
+    //сам вывод на дисплей или куда надо
+    void echoDisplay(int i) {
+      Serial.println(i, DEC);
       return;
     }
 
@@ -102,15 +125,16 @@ class Thermofan {
     Thermofan() {
       this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.5, 0, 0.7, DIRECT);
       pinMode(optronPin, OUTPUT);
-      pinMode(13, OUTPUT);
-      pinMode(hermeticContactPin, INPUT);
+      pinMode(this->warmingLed, OUTPUT);
+      pinMode(4, OUTPUT);
+      pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
       this->fanpid->SetSampleTime(80);
     }
 
-    void loop() {
+    void loopth() {
       // Считыываем состояние геркона
-      this->hermeticContactState = !digitalRead(this->hermeticContactPin);
+      this->readhermeticContactState();
       // Считываем с пина значение температуры
       this->getOversampled();
       // Считыаем значение с потенциометра
@@ -130,5 +154,5 @@ void setup() {
 }
 
 void loop() {
-  thermofan1->loop();
+  thermofan1->loopth();
 }
