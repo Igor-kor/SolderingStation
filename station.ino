@@ -7,7 +7,7 @@ iarduino_OLED myOLED(0x3C);                                // Объявляем
 extern uint8_t MediumFont[];                               // Подключаем шрифт MediumFont.
 
 // время цикла 1 ( * 2 = 10 мс)
-#define CYCLE_1_TIME 10
+#define CYCLE_1_TIME 1
 //Максимальная температура
 #define TEMP_MAX 500
 
@@ -74,16 +74,13 @@ class Thermofan {
 
     //чтение заданой температуры с потенциометра
     int readValueTemperature() {
-      return map(analogRead(this->potentiometerPin), 0, 1024, 0, TEMP_MAX) ;
+      return map(this->getOversampled(this->potentiometerPin), 0, 1024, 0, TEMP_MAX) ;
     }
 
     //чтение значения с потенциометра
     //todo: нужно переделать под разные потенциометры их может быть несколько
     void readPotentiometr() {
       this->Setpoint = this->readValueTemperature();
-      //     if (abs(this->Setpoint - this->oldTemperature) > 5) {
-      //      this->outValuePotentiometer = 100;
-      //    }
       this->oldTemperature = this->Setpoint;
     }
 
@@ -107,31 +104,27 @@ class Thermofan {
       if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan) {
         digitalWrite(this->warmingLed, LOW);
         analogWrite(this->optronPin, LOW);
+        this->echoDisplay(this->Output, 0,50);
+        this->echoDisplay("holding", 1);
       } else {
-        // Делаем расчет значения для пид
-        this->fanpid->Compute();
+              // Делаем расчет значения для пид
+      this->fanpid->Compute();
         //нагрев тена
         digitalWrite(this->warmingLed, HIGH);
         analogWrite(this->optronPin, this->Output);
+        this->echoDisplay(this->Output, 0,50);
+        this->echoDisplay("warming", 1);
       }
     }
 
     //вывод температуры
     void echo () {
-      if ( this->timerEcho >= CYCLE_1_TIME ) {
-        this->timerEcho = 0;
-        this->echoDisplay(this->thermocoupleValue, 0);
+        this->echoDisplay(this->Input, 0);
         this->echoDisplay(this->Setpoint, 1);
-      }
-      this->timerEcho++;
     }
 
     //сам вывод на дисплей или куда надо
     void echoDisplay(int i) {
-      //      Serial.write( 0xff );
-      //      Serial.write( (i >> 8) & 0xff );
-      //      Serial.write( i & 0xff );
-      //      Serial.println(i, DEC);
       myOLED.setCursor(0, 17);
       myOLED.print(i);
       return;
@@ -139,26 +132,37 @@ class Thermofan {
 
     //сам вывод на дисплей или куда надо
     void echoDisplay(int i, int str) {
-      //      Serial.write( 0xff );
-      //      Serial.write( (i >> 8) & 0xff );
-      //      Serial.write( i & 0xff );
-      //      Serial.println(i, DEC);
       myOLED.setCursor(0, (str + 1) * 17);
       myOLED.print(i);
       myOLED.print(" ");
       return;
     }
 
+     void echoDisplay(int i, int str, int x) {
+      myOLED.setCursor(x, (str + 1) * 17);
+      myOLED.print(i);
+      myOLED.print(" ");
+      return;
+    }
+
+        //сам вывод на дисплей или куда надо
+    void echoDisplay(char* i, int str) {
+      myOLED.setCursor(40, (str + 1) * 17);
+      myOLED.print(i);
+      return;
+    }
+
   public:
     //устанавливаем все значения для термофена
     Thermofan() {
-      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.5, 0, 0.7, DIRECT);
+      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.03, 0, 0.005, DIRECT);
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
       pinMode(4, OUTPUT);
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
-      this->fanpid->SetSampleTime(80);
+      this->fanpid->SetSampleTime(40);
+//      this->fanpid->SetOutputLimits(0,250);
     }
 
     void loopth() {
