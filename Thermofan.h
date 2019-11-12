@@ -3,7 +3,7 @@
 //Максимальная температура на потенциометре
 #define TEMP_MAX 500
 //Температура при достижении которой отключится нагрев(для аварийного охлаждения);
-#define TEMP_MAX_OFF 600
+#define TEMP_MAX_OFF 500
 //Температура после которой фен снова начнет свою работу после аварийного охлаждения
 #define TEMP_MIN_ON 50
 // Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
@@ -21,6 +21,9 @@ class Thermofan {
     const int thermocouplePin = A0;
     // Значение температуры нагрева
     int thermocoupleValue = 0;
+    // ОШИБКИ
+    // 1 - Перегрев фена выше TEMP_MAX_OFF
+    int error = 0;
 
     // Пин потенциометра температуры нагрева
     const int potentiometerPin = A1;
@@ -89,8 +92,6 @@ class Thermofan {
     void getTenTemperature() {
       this->thermocoupleValue =  abs(int(206.36 * this->getOversampled(this->thermocouplePin) * (5.0 / 1023.0) - 13.263));
       this->Input = this->thermocoupleValue;
-      if (this->Input > 600)this->warmingFan = false;
-      if (this->warmingFan == false && this->Input < TEMP_MIN_ON)this->warmingFan = true;
     }
 
     //чтение значения с потенциометра температуры
@@ -107,9 +108,18 @@ class Thermofan {
       //если температура задана ниже 20 то не будем ничего нагревать
       //или если фен лежит на подставке
       //или если нагрев выключен
-
-
-      if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan) {
+      //или если достигнут максимум нагрева
+      if (this->Input > TEMP_MAX_OFF) {
+        this->warmingFan = false;
+        this->error = 1;
+      }
+      if (this->error == 1) {
+        if (this->warmingFan == false && this->Input < TEMP_MIN_ON) {
+          this->warmingFan = true;
+          this->error = 0;
+        }
+      }
+      if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan ) {
         digitalWrite(this->warmingLed, LOW);
         analogWrite(this->optronPin, LOW);
       } else {
@@ -127,6 +137,8 @@ class Thermofan {
       this->echoDisplay(this->Setpoint, 1);
       this->echoDisplay(this->hermeticContactState, 2);
       this->echoDisplay(this->Output, 0, 50);
+      this->echoDisplay(this->error, 0, 90);
+      //обновление дисплея выводит все за 1 раз(с автообновление каждый print обновлял экран что снижало сокрость работы)
       myOLED.update();
     }
 
