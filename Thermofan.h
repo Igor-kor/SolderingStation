@@ -20,34 +20,27 @@ uint32_t       mil = 0;
 //при разогреве сверх ххх температуры отключить нагрев, сообщить о неисправности
 class Thermofan {
     // Пин термопары(операционного усилителя)
-    int thermocouplePin = A0;
+    const int thermocouplePin = A0;
     // Значение температуры нагрева
     int thermocoupleValue = 0;
 
     // Пин потенциометра температуры нагрева
-    int potentiometerPin = A1;
+    const int potentiometerPin = A1;
     // Пин оптопары нагрева фена
-    int optronPin = 9;
-
-    // Задержка для показа выставляемой температуры
-    int outValuePotentiometer = 0;
-    // Предыдущее значение выставленной температуры
-    int oldTemperature = 0;
-    // Таймер вывода значений температуры на дисплей
-    byte timerEcho = 0;
+    const int optronPin = 9;
 
     // Пин геркона
-    int hermeticContactPin = 10;
+    const int hermeticContactPin = 10;
     // Значение геркона
     bool hermeticContactState = false;
 
     //включен ли нагрев фена
     bool warmingFan = true;
-    //пин кнопки включения нагрева фена
-    int warmingButton = 4;
+    //пин кнопки включения нагрева фена todo: не используется сейчас
+//    const int warmingButton = 4;
 
-    //индикатор нагрева фена
-    int warmingLed = 13;
+    //пин индикатора нагрева фена todo: теперь не нужен, есть дисплэй
+    const int warmingLed = 13;
 
     // Для пид регулировки
     double Input , Setpoint, Output;
@@ -64,7 +57,8 @@ class Thermofan {
       pinMode(4, OUTPUT);
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
-      this->fanpid->SetSampleTime(40);
+      // оптимально 80
+      this->fanpid->SetSampleTime(80);
       //      this->fanpid->SetOutputLimits(0,250);
       myOLED.begin(); // Инициируем работу с дисплеем.
       myOLED.setFont(MediumFont);
@@ -101,7 +95,6 @@ class Thermofan {
     //чтение значения с потенциометра температуры
     void readPotentiometr() {
       this->Setpoint = map(this->getOversampled(this->potentiometerPin), 0, 1024, 0, TEMP_MAX) ;
-      this->oldTemperature = this->Setpoint;
     }
 
     void readhermeticContactState() {
@@ -135,7 +128,7 @@ class Thermofan {
       this->echoDisplay(this->Setpoint, 1);
       this->echoDisplay(this->hermeticContactState, 2);
       this->echoDisplay(this->Output, 0, 50);
-          this->echoDisplay(Testloop++, 2, 40);
+      this->echoDisplay(Testloop++, 2, 40);
     }
 
     //сам вывод на дисплей или куда надо
@@ -178,8 +171,14 @@ class Thermofan {
       //      this->echo();
       //todo: пока будет костыль
       if ( (millis() - mil) > TIME_ECHO) {
+        //отключаем нагрев во время вывода на дисплэй
+        this->warmingFan = false;
+        //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
+        this->warming();
         this->echo();
         mil = millis();
+        //после вывода снова включаем нагрев
+        this->warmingFan = true;
       }
       // Нагрев фена
       this->warming();
