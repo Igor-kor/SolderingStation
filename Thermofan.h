@@ -62,6 +62,8 @@ class Thermofan {
       //      this->fanpid->SetOutputLimits(0,250);
       myOLED.begin(); // Инициируем работу с дисплеем.
       myOLED.setFont(MediumFont);
+      //отключаем автообновление, так будет быстрее вывод всего экрана
+      myOLED.autoUpdate(false);
 //      myOLED.invText();
     }
 
@@ -129,7 +131,6 @@ class Thermofan {
       this->echoDisplay(this->Setpoint, 1);
       this->echoDisplay(this->hermeticContactState, 2);
       this->echoDisplay(this->Output, 0, 50);
-//      this->echoDisplay(Testloop++, 2, 40);
       myOLED.update();
     }
 
@@ -175,8 +176,6 @@ class Thermofan {
         this->warmingFan = false;
         //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
         this->warming();
-//        myOLED.setCursor(40,2*17);
-//        myOLED.printold(Testloop++);
         this->echo();
         mil = millis();
         //после вывода снова включаем нагрев
