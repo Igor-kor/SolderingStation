@@ -1,4 +1,4 @@
-#include <iarduino_OLED.h>
+#include "Myiarduino_OLED.h"
 
 //Максимальная температура на потенциометре
 #define TEMP_MAX 500
@@ -10,7 +10,7 @@
 #define TIME_ECHO 1000
 
 int Testloop = 0;
-iarduino_OLED myOLED(0x3C);                                // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
+Myiarduino_OLED myOLED(0x3C);                                // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
 extern uint8_t MediumFont[];                               // Подключаем шрифт MediumFont.
 uint32_t       mil = 0;
 
@@ -62,6 +62,7 @@ class Thermofan {
       //      this->fanpid->SetOutputLimits(0,250);
       myOLED.begin(); // Инициируем работу с дисплеем.
       myOLED.setFont(MediumFont);
+//      myOLED.invText();
     }
 
     //функция оверсэмплинга
@@ -109,26 +110,27 @@ class Thermofan {
 
 
       if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan) {
-        digitalWrite(this->warmingLed, LOW);
+//        digitalWrite(this->warmingLed, LOW);
         analogWrite(this->optronPin, LOW);
         //        this->echoDisplay("holding", 1);
       } else {
         // Делаем расчет значения для пид
         this->fanpid->Compute();
         //нагрев тена
-        digitalWrite(this->warmingLed, HIGH);
+//        digitalWrite(this->warmingLed, HIGH);
         analogWrite(this->optronPin, this->Output);
         //        this->echoDisplay("warming", 1);
       }
     }
 
-    //вывод температуры
+    //вывод 
     void echo () {
       this->echoDisplay(this->Input, 0);
       this->echoDisplay(this->Setpoint, 1);
       this->echoDisplay(this->hermeticContactState, 2);
       this->echoDisplay(this->Output, 0, 50);
-      this->echoDisplay(Testloop++, 2, 40);
+//      this->echoDisplay(Testloop++, 2, 40);
+      myOLED.update();
     }
 
     //сам вывод на дисплей или куда надо
@@ -138,7 +140,6 @@ class Thermofan {
       return;
     }
 
-    //сам вывод на дисплей или куда надо
     void echoDisplay(int i, int str) {
       myOLED.setCursor(0, (str + 1) * 17);
       myOLED.print(i);
@@ -153,7 +154,6 @@ class Thermofan {
       return;
     }
 
-    //сам вывод на дисплей или куда надо
     void echoDisplay(char* i, int str) {
       myOLED.setCursor(40, (str + 1) * 17);
       myOLED.print(i);
@@ -175,6 +175,8 @@ class Thermofan {
         this->warmingFan = false;
         //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
         this->warming();
+//        myOLED.setCursor(40,2*17);
+//        myOLED.printold(Testloop++);
         this->echo();
         mil = millis();
         //после вывода снова включаем нагрев
