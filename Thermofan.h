@@ -1,4 +1,4 @@
-#include "Myiarduino_OLED.h"
+#include <iarduino_OLED.h>
 
 //Максимальная температура на потенциометре
 #define TEMP_MAX 500
@@ -10,7 +10,7 @@
 #define TIME_ECHO 1000
 
 int Testloop = 0;
-Myiarduino_OLED myOLED(0x3C);                                // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
+iarduino_OLED myOLED(0x3C);                                // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
 extern uint8_t MediumFont[];                               // Подключаем шрифт MediumFont.
 uint32_t       mil = 0;
 
