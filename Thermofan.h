@@ -1,21 +1,17 @@
-#include <iarduino_OLED.h>
-
 //Максимальная температура на потенциометре
-#define TEMP_MAX 500
+#define TEMP_MAX 600
 //Температура при достижении которой отключится нагрев(для аварийного охлаждения);
-#define TEMP_MAX_OFF 600
+#define TEMP_MAX_OFF 500
 //Температура после которой фен снова начнет свою работу после аварийного охлаждения
 #define TEMP_MIN_ON 50
 // Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
 #define TIME_ECHO 1000
 
 int Testloop = 0;
-iarduino_OLED myOLED(0x3C);                                // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
-extern uint8_t MediumFont[];                               // Подключаем шрифт MediumFont.
+iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
+extern uint8_t MediumFont[];  // Подключаем шрифт MediumFont.
 uint32_t       mil = 0;
 
-//нужно сделать 2 функции on & off одна будет включать нагрев фена другая выключать
-//но при этом он должен продуваться и после остывания отключиться
 //также нужно сделать определения подключения фена в разьем
 //при разогреве сверх ххх температуры отключить нагрев, сообщить о неисправности
 class Thermofan {
@@ -23,6 +19,9 @@ class Thermofan {
     const int thermocouplePin = A0;
     // Значение температуры нагрева
     int thermocoupleValue = 0;
+    // ОШИБКИ
+    // 1 - Перегрев фена выше TEMP_MAX_OFF
+    int error = 0;
 
     // Пин потенциометра температуры нагрева
     const int potentiometerPin = A1;
@@ -37,7 +36,7 @@ class Thermofan {
     //включен ли нагрев фена
     bool warmingFan = true;
     //пин кнопки включения нагрева фена todo: не используется сейчас
-//    const int warmingButton = 4;
+    //    const int warmingButton = 4;
 
     //пин индикатора нагрева фена todo: теперь не нужен, есть дисплэй
     const int warmingLed = 13;
@@ -64,7 +63,7 @@ class Thermofan {
       myOLED.setFont(MediumFont);
       //отключаем автообновление, так будет быстрее вывод всего экрана
       myOLED.autoUpdate(false);
-//      myOLED.invText();
+      //      myOLED.invText();
     }
 
     //функция оверсэмплинга
@@ -91,8 +90,6 @@ class Thermofan {
     void getTenTemperature() {
       this->thermocoupleValue =  abs(int(206.36 * this->getOversampled(this->thermocouplePin) * (5.0 / 1023.0) - 13.263));
       this->Input = this->thermocoupleValue;
-      if (this->Input > 600)this->warmingFan = false;
-      if (this->warmingFan == false && this->Input < TEMP_MIN_ON)this->warmingFan = true;
     }
 
     //чтение значения с потенциометра температуры
@@ -109,28 +106,37 @@ class Thermofan {
       //если температура задана ниже 20 то не будем ничего нагревать
       //или если фен лежит на подставке
       //или если нагрев выключен
-
-
-      if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan) {
-//        digitalWrite(this->warmingLed, LOW);
+      //или если достигнут максимум нагрева
+      if (this->Input > TEMP_MAX_OFF) {
+        this->warmingFan = false;
+        this->error = 1;
+      }
+      if (this->error == 1) {
+        if (this->warmingFan == false && this->Input < TEMP_MIN_ON) {
+          this->warmingFan = true;
+          this->error = 0;
+        }
+      }
+      if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan ) {
+        digitalWrite(this->warmingLed, LOW);
         analogWrite(this->optronPin, LOW);
-        //        this->echoDisplay("holding", 1);
       } else {
         // Делаем расчет значения для пид
         this->fanpid->Compute();
         //нагрев тена
-//        digitalWrite(this->warmingLed, HIGH);
+        digitalWrite(this->warmingLed, HIGH);
         analogWrite(this->optronPin, this->Output);
-        //        this->echoDisplay("warming", 1);
       }
     }
 
-    //вывод 
+    //вывод
     void echo () {
       this->echoDisplay(this->Input, 0);
       this->echoDisplay(this->Setpoint, 1);
       this->echoDisplay(this->hermeticContactState, 2);
       this->echoDisplay(this->Output, 0, 50);
+      this->echoDisplay(this->error, 0, 90);
+      //обновление дисплея выводит все за 1 раз(с автообновление каждый print обновлял экран что снижало сокрость работы)
       myOLED.update();
     }
 
@@ -168,18 +174,22 @@ class Thermofan {
       this->getTenTemperature();
       // Считыаем значение с потенциометра
       this->readPotentiometr();
-      // Вывод значения
-      //      this->echo();
-      //todo: пока будет костыль
+      // Вывод значения todo: пока будет костыль
       if ( (millis() - mil) > TIME_ECHO) {
-        //отключаем нагрев во время вывода на дисплэй
-        this->warmingFan = false;
-        //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
-        this->warming();
-        this->echo();
-        mil = millis();
-        //после вывода снова включаем нагрев
-        this->warmingFan = true;
+        //Так как нагрев может быть выключен то нужно проверять прежде чем изменять значение
+        if (this->warmingFan) {
+          //отключаем нагрев во время вывода на дисплэй
+          this->warmingFan = false;
+          //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
+          this->warming();
+          this->echo();
+          mil = millis();
+          //после вывода снова включаем нагрев
+          this->warmingFan = true;
+        } else {
+          this->echo();
+          mil = millis();
+        }
       }
       // Нагрев фена
       this->warming();
