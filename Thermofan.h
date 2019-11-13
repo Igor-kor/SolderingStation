@@ -1,4 +1,6 @@
-#include <iarduino_OLED.h>
+//#define pin_SW_SDA 3            
+//#define pin_SW_SCL 9 
+#include <iarduino_OLED_txt.h>
 
 //Максимальная температура на потенциометре
 #define TEMP_MAX 500
@@ -10,7 +12,7 @@
 #define TIME_ECHO 1000
 
 int Testloop = 0;
-iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
+iarduino_OLED_txt myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
 extern uint8_t MediumFont[];  // Подключаем шрифт MediumFont.
 uint32_t       mil = 0;
 
@@ -64,7 +66,7 @@ class Thermofan {
       myOLED.begin(); // Инициируем работу с дисплеем.
       myOLED.setFont(MediumFont);
       //отключаем автообновление, так будет быстрее вывод всего экрана
-      myOLED.autoUpdate(false);
+     // myOLED.autoUpdate(false);
       //      myOLED.invText();
     }
 
@@ -133,38 +135,38 @@ class Thermofan {
 
     //вывод
     void echo () {
-      this->echoDisplay(this->Input, 0);
-      this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay(this->hermeticContactState, 2);
-      this->echoDisplay(this->Output, 0, 50);
-      this->echoDisplay(this->error, 0, 90);
+      this->echoDisplay(this->Input, 1);
+      this->echoDisplay(this->Setpoint, 3);
+      this->echoDisplay(this->hermeticContactState, 5);
+      this->echoDisplay(this->Output, 1,40);
+      this->echoDisplay(this->error, 1, 80);
+        this->echoDisplay(Testloop, 3, 40);
       //обновление дисплея выводит все за 1 раз(с автообновление каждый print обновлял экран что снижало сокрость работы)
-      myOLED.update();
+     // myOLED.update();
     }
 
     //сам вывод на дисплей или куда надо
     void echoDisplay(int i) {
-      myOLED.setCursor(0, 17);
+      myOLED.setCursor(0, 0);
       myOLED.print(i);
       return;
     }
 
     void echoDisplay(int i, int str) {
-      myOLED.setCursor(0, (str + 1) * 17);
+      myOLED.setCursor(0, str);
       myOLED.print(i);
-      myOLED.print(" ");
       return;
     }
 
     void echoDisplay(int i, int str, int x) {
-      myOLED.setCursor(x, (str + 1) * 17);
+      myOLED.setCursor(x, str);
       myOLED.print(i);
-      myOLED.print(" ");
+     // myOLED.print(" ");
       return;
     }
 
     void echoDisplay(char* i, int str) {
-      myOLED.setCursor(40, (str + 1) * 17);
+      myOLED.setCursor(0, str);
       myOLED.print(i);
       return;
     }
