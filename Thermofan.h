@@ -1,5 +1,11 @@
 #include <iarduino_OLED.h>
+#include <Arduino.h>
+#include <U8g2lib.h>
+#include <SPI.h>
+#include <Wire.h>
 
+U8X8_SSD1306_128X32_UNIVISION_SW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
+int h;    
 //Максимальная температура на потенциометре
 #define TEMP_MAX 500
 //Температура при достижении которой отключится нагрев(для аварийного охлаждения);
@@ -10,7 +16,6 @@
 #define TIME_ECHO 1000
 
 int Testloop = 0;
-iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
 extern uint8_t MediumFont[];  // Подключаем шрифт MediumFont.
 uint32_t       mil = 0;
 
@@ -61,11 +66,10 @@ class Thermofan {
       // оптимально 80
       this->fanpid->SetSampleTime(80);
       //      this->fanpid->SetOutputLimits(0,250);
-      myOLED.begin(); // Инициируем работу с дисплеем.
-      myOLED.setFont(MediumFont);
-      //отключаем автообновление, так будет быстрее вывод всего экрана
-      myOLED.autoUpdate(false);
+    
       //      myOLED.invText();
+       u8x8.begin();
+  u8x8.setPowerSave(0);
     }
 
     //функция оверсэмплинга
@@ -131,43 +135,7 @@ class Thermofan {
       }
     }
 
-    //вывод
-    void echo () {
-      this->echoDisplay(this->Input, 0);
-      this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay(this->hermeticContactState, 2);
-      this->echoDisplay(this->Output, 0, 50);
-      this->echoDisplay(this->error, 0, 90);
-      //обновление дисплея выводит все за 1 раз(с автообновление каждый print обновлял экран что снижало сокрость работы)
-      myOLED.update();
-    }
 
-    //сам вывод на дисплей или куда надо
-    void echoDisplay(int i) {
-      myOLED.setCursor(0, 17);
-      myOLED.print(i);
-      return;
-    }
-
-    void echoDisplay(int i, int str) {
-      myOLED.setCursor(0, (str + 1) * 17);
-      myOLED.print(i);
-      myOLED.print(" ");
-      return;
-    }
-
-    void echoDisplay(int i, int str, int x) {
-      myOLED.setCursor(x, (str + 1) * 17);
-      myOLED.print(i);
-      myOLED.print(" ");
-      return;
-    }
-
-    void echoDisplay(char* i, int str) {
-      myOLED.setCursor(40, (str + 1) * 17);
-      myOLED.print(i);
-      return;
-    }
 
     void loopth() {
       // Считыываем состояние геркона
@@ -179,17 +147,20 @@ class Thermofan {
       // Вывод значения todo: пока будет костыль
       if ( (millis() - mil) > TIME_ECHO) {
         //Так как нагрев может быть выключен то нужно проверять прежде чем изменять значение
-        if (this->warmingFan) {
+        if (1) {
           //отключаем нагрев во время вывода на дисплэй
           this->warmingFan = false;
           //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
           this->warming();
-          this->echo();
+            u8x8.setFont(u8x8_font_chroma48medium8_r);
+     char str[11];
+   sprintf(str, "%d",Testloop);
+  u8x8.drawString(0,0,str);
+          //this->echo();
           mil = millis();
           //после вывода снова включаем нагрев
           this->warmingFan = true;
         } else {
-          this->echo();
           mil = millis();
         }
       }
