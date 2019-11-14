@@ -6,9 +6,24 @@
 #define TEMP_MIN_ON 50
 // Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
 #define TIME_ECHO 1000
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#define NUMFLAKES     10 // Number of snowflakes in the animation example
+
+#define LOGO_HEIGHT   16
+#define LOGO_WIDTH    16
 int Testloop = 0;
-iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
+//iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
 extern uint8_t MediumFont[];  // Подключаем шрифт MediumFont.
 uint32_t       mil = 0;
 
@@ -59,11 +74,16 @@ class Thermofan {
       // оптимально 80
       this->fanpid->SetSampleTime(80);
       //      this->fanpid->SetOutputLimits(0,250);
-      myOLED.begin(); // Инициируем работу с дисплеем.
-      myOLED.setFont(MediumFont);
+    //  myOLED.begin(); // Инициируем работу с дисплеем.
+    //  myOLED.setFont(MediumFont);
       //отключаем автообновление, так будет быстрее вывод всего экрана
-      myOLED.autoUpdate(false);
+   //   myOLED.autoUpdate(false);
       //      myOLED.invText();
+       // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3C for 128x32
+    Serial.println(F("SSD1306 allocation failed"));
+    for (;;); // Don't proceed, loop forever
+  }
     }
 
     //функция оверсэмплинга
@@ -130,43 +150,7 @@ class Thermofan {
     }
 
     //вывод
-    void echo () {
-      this->echoDisplay(this->Input, 0);
-      this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay(this->hermeticContactState, 2);
-      this->echoDisplay(this->Output, 0, 50);
-      this->echoDisplay(this->error, 0, 90);
-      //обновление дисплея выводит все за 1 раз(с автообновление каждый print обновлял экран что снижало сокрость работы)
-      myOLED.update();
-    }
-
-    //сам вывод на дисплей или куда надо
-    void echoDisplay(int i) {
-      myOLED.setCursor(0, 17);
-      myOLED.print(i);
-      return;
-    }
-
-    void echoDisplay(int i, int str) {
-      myOLED.setCursor(0, (str + 1) * 17);
-      myOLED.print(i);
-      myOLED.print(" ");
-      return;
-    }
-
-    void echoDisplay(int i, int str, int x) {
-      myOLED.setCursor(x, (str + 1) * 17);
-      myOLED.print(i);
-      myOLED.print(" ");
-      return;
-    }
-
-    void echoDisplay(char* i, int str) {
-      myOLED.setCursor(40, (str + 1) * 17);
-      myOLED.print(i);
-      return;
-    }
-
+   
     void loopth() {
       // Считыываем состояние геркона
       this->readhermeticContactState();
@@ -182,14 +166,34 @@ class Thermofan {
           this->warmingFan = false;
           //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
           this->warming();
-          this->echo();
+//          this->echo();
           mil = millis();
           //после вывода снова включаем нагрев
           this->warmingFan = true;
         } else {
-          this->echo();
+//          this->echo();
           mil = millis();
         }
+          display.clearDisplay();
+
+  display.setTextSize(1);      // Normal 1:1 pixel scale
+  display.setTextColor(SSD1306_WHITE); // Draw white text
+  display.setCursor(0, 0);     // Start at top-left corner
+  display.cp437(true);         // Use full 256 char 'Code Page 437' font
+  char str[11];
+  sprintf(str, "%d", Testloop);
+  display.write(str[0]);
+  display.write(str[1]);
+  display.write(str[2]);
+  display.write(str[3]);
+  display.write(str[4]);
+  display.write(str[5]);
+  display.write(str[6]);
+  display.write(str[7]);
+  display.write(str[8]);
+  display.write(str[9]);
+  display.write(str[10]);
+  display.display();
       }
       // Нагрев фена
       this->warming();
