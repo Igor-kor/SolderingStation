@@ -10,7 +10,9 @@
 int Testloop = 0;
 iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
 extern uint8_t MediumFont[];  // Подключаем шрифт MediumFont.
-uint32_t       mil = 0;
+uint32_t       mil = 0; //текущие милисекунды для вывода на экран
+int countzerocross = 0;
+int warmcount = 10;
 
 //также нужно сделать определения подключения фена в разьем
 //при разогреве сверх ххх температуры отключить нагрев, сообщить о неисправности
@@ -22,6 +24,9 @@ class Thermofan {
     // ОШИБКИ
     // 1 - Перегрев фена выше TEMP_MAX_OFF
     int error = 0;
+
+    const int speedfanPin = 5;
+    
 
     // Пин потенциометра температуры нагрева
     const int potentiometerPin = A1;
@@ -47,13 +52,16 @@ class Thermofan {
     // Как настраивать http://full-chip.net/arduino-proekty/110-pid-regulyator-dlya-nagrevaohlazhdeniya.html
     PID* fanpid;
 
+    int speedfan;
+
   public:
     //Конструктор
     Thermofan() {
-      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.5, 0, 0.7, DIRECT);
+      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 1, 0, 0.7, DIRECT);
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
       pinMode(4, OUTPUT);
+      pinMode(5, OUTPUT);
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
       // оптимально 80
@@ -64,6 +72,21 @@ class Thermofan {
       //отключаем автообновление, так будет быстрее вывод всего экрана
       myOLED.autoUpdate(false);
       //      myOLED.invText();
+      attachInterrupt(1,this->attachFun,FALLING);
+      this->speedfan = 200;
+    }
+    
+    static void attachFun(){
+      countzerocross++;
+      if(countzerocross > 100)countzerocross = 0;
+      //если меньше то греем если больше то отключаем
+      if(warmcount <= countzerocross || warmcount < 0 ){
+          digitalWrite(9, LOW);
+            digitalWrite(13, LOW);
+      }else{
+          digitalWrite(9, HIGH);
+            digitalWrite(13, LOW);
+      }
     }
 
     //функция оверсэмплинга
@@ -110,6 +133,7 @@ class Thermofan {
       if (this->Input > TEMP_MAX_OFF) {
         this->warmingFan = false;
         this->error = 1;
+        this->speedfan = 255;
       }
       if (this->error == 1) {
         if (this->warmingFan == false && this->Input < TEMP_MIN_ON) {
@@ -118,14 +142,14 @@ class Thermofan {
         }
       }
       if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan ) {
-        digitalWrite(this->warmingLed, LOW);
-        analogWrite(this->optronPin, LOW);
+        warmcount = 0;
+//        analogWrite(this->warmingLed, LOW);
       } else {
         // Делаем расчет значения для пид
         this->fanpid->Compute();
         //нагрев тена
-        digitalWrite(this->warmingLed, HIGH);
-        analogWrite(this->optronPin, this->Output);
+        warmcount = this->Output;
+//        digitalWrite(this->warmingLed, HIGH);      
       }
     }
 
@@ -134,8 +158,8 @@ class Thermofan {
       this->echoDisplay(this->Input, 0);
       this->echoDisplay(this->Setpoint, 1);
       this->echoDisplay(this->hermeticContactState, 2);
-      this->echoDisplay(this->Output, 0, 50);
-      this->echoDisplay(this->error, 0, 90);
+      this->echoDisplay(warmcount, 0, 50);
+      this->echoDisplay(this->Output, 0, 90);
       //обновление дисплея выводит все за 1 раз(с автообновление каждый print обновлял экран что снижало сокрость работы)
       myOLED.update();
     }
@@ -194,6 +218,15 @@ class Thermofan {
       // Нагрев фена
       this->warming();
       Testloop++;
+      //скорость вращения фена
+       if(this->error == 0){
+        if ( this->Input < 15 && this->Setpoint < 10) {
+          this->speedfan = 0;
+        }else {
+           this->speedfan = 200;
+        }
+      }
+       analogWrite(this->speedfanPin, this->speedfan);
     }
-
+    
 };
