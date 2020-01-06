@@ -25,6 +25,7 @@ class Thermofan {
     // 1 - Перегрев фена выше TEMP_MAX_OFF
     int error = 0;
 
+    const int speedfanPin = 5;
     
 
     // Пин потенциометра температуры нагрева
@@ -51,6 +52,8 @@ class Thermofan {
     // Как настраивать http://full-chip.net/arduino-proekty/110-pid-regulyator-dlya-nagrevaohlazhdeniya.html
     PID* fanpid;
 
+    int speedfan;
+
   public:
     //Конструктор
     Thermofan() {
@@ -58,6 +61,7 @@ class Thermofan {
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
       pinMode(4, OUTPUT);
+      pinMode(5, OUTPUT);
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
       // оптимально 80
@@ -69,6 +73,7 @@ class Thermofan {
       myOLED.autoUpdate(false);
       //      myOLED.invText();
       attachInterrupt(1,this->attachFun,FALLING);
+      this->speedfan = 200;
     }
     
     static void attachFun(){
@@ -128,6 +133,7 @@ class Thermofan {
       if (this->Input > TEMP_MAX_OFF) {
         this->warmingFan = false;
         this->error = 1;
+        this->speedfan = 255;
       }
       if (this->error == 1) {
         if (this->warmingFan == false && this->Input < TEMP_MIN_ON) {
@@ -212,6 +218,15 @@ class Thermofan {
       // Нагрев фена
       this->warming();
       Testloop++;
+      //скорость вращения фена
+       if(this->error == 0){
+        if ( this->Input < 15 && this->Setpoint < 10) {
+          this->speedfan = 0;
+        }else {
+           this->speedfan = 200;
+        }
+      }
+       analogWrite(this->speedfanPin, this->speedfan);
     }
     
 };
