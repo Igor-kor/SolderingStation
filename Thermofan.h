@@ -7,12 +7,18 @@
 // Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
 #define TIME_ECHO 50
 
-#define ENC_A 2       // пин энкодера
-#define ENC_B 4       // пин энкодера
-#define ENC_TYPE 2    // тип энкодера, 0 или 1
+// для энкодера
 #define ENC_LEFT 1
 #define ENC_RIGHT 0
 #define MILLIS_CHANGE_DIRECTION 100
+int value = 0;
+uint32_t lastTickEncoder;
+bool encDirection = 0;
+#define ENC_A 2       // пин энкодера
+#define ENC_B 4       // пин энкодера
+#define ENC_TYPE 1    // тип энкодера, 0 или 1
+volatile int encCounter;
+volatile boolean state0, lastState, turnFlag;
 
 int Testloop = 0;
 //iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
@@ -21,39 +27,6 @@ U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* re
 uint32_t       mil = 0; //текущие милисекунды для вывода на экран
 int countzerocross = 0;
 int warmcount = 10;
-
-// для энкодера
-volatile uint32_t lastTickEncoder = 0;
-volatile int encDirection = 0;
-volatile int thisdirection = 0;
-volatile int encCounter = 0;
-volatile boolean state0, lastState, turnFlag;
-
-void encoderRead() {
-  state0 = digitalRead(ENC_A);
-  thisdirection = 0;
-  if (state0 != lastState) {
-#if (ENC_TYPE == 2)
-    turnFlag = !turnFlag;
-    if (turnFlag)
-      thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-#else
-    thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-#endif
-    if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < millis()) {
-      encDirection = thisdirection;
-    }
-    if (encDirection == ENC_RIGHT) {
-      encCounter += 1;
-    } else {
-      encCounter -= 1;
-    }
-    lastTickEncoder = millis();
-    lastState = state0;
-    if (encCounter < 0)encCounter = 0;
-    if (encCounter > 500)encCounter = 500;
-  }
-}
 
 //также нужно сделать определения подключения фена в разьем
 //при разогреве сверх ххх температуры отключить нагрев, сообщить о неисправности
@@ -67,7 +40,6 @@ class Thermofan {
     int error = 0;
 
     const int speedfanPin = 5;
-
 
     // Пин потенциометра температуры нагрева
     const int potentiometerPin = A1;
@@ -102,7 +74,6 @@ class Thermofan {
       this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 1, 0, 0.7, DIRECT);
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
-      pinMode(4, OUTPUT);
       pinMode(5, OUTPUT);
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
@@ -113,8 +84,34 @@ class Thermofan {
       u8x8.setPowerSave(0);
       u8x8.setFont(u8x8_font_chroma48medium8_r);
       attachInterrupt(1, this->attachFun, FALLING);
-      attachInterrupt(0,  encoderRead, CHANGE);
+      attachInterrupt(0, this->attachEncoder, CHANGE);
       this->speedfan = 200;
+    }
+
+    static void attachEncoder() {
+      state0 = digitalRead(ENC_A);
+      int thisdirection = 0;
+      if (state0 != lastState) {
+#if (ENC_TYPE == 2)
+        turnFlag = !turnFlag;
+        if (turnFlag)
+          thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
+#else
+        thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
+#endif
+        if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < millis()) {
+          encDirection = thisdirection;
+        }
+        if (encDirection == ENC_RIGHT) {
+          encCounter += 1;
+        } else {
+          encCounter -= 1;
+        }
+        lastTickEncoder = millis();
+        lastState = state0;
+        if (encCounter < 0)encCounter = 0;
+        if (encCounter > 500)encCounter = 500;
+      }
     }
 
     static void attachFun() {
@@ -160,7 +157,7 @@ class Thermofan {
     void readPotentiometr() {
       // this->Setpoint = map(this->getOversampled(this->potentiometerPin), 0, 1024, 0, TEMP_MAX) ;
       //todo теперь значения с энкодера
-      this->Setpoint = encCounter;
+      // this->Setpoint = encCounter;
     }
 
     void readhermeticContactState() {
@@ -197,11 +194,12 @@ class Thermofan {
     //вывод
     void echo () {
       this->echoDisplay(this->Input, 0);
-      this->echoDisplay(this->Setpoint, 1);
+      //this->echoDisplay(this->Setpoint, 1);
+      this->echoDisplay(encCounter, 1);
       this->echoDisplay(this->hermeticContactState, 2);
       this->echoDisplay(warmcount, 0, 5);
       this->echoDisplay(this->Output, 0, 9);
-      this->echoDisplay( thisdirection , 1, 9);
+      //      this->echoDisplay( thisdirection , 1, 9);
     }
 
     //сам вывод на дисплей или куда надо
