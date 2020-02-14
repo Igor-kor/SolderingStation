@@ -153,11 +153,9 @@ class Thermofan {
       this->Input = this->thermocoupleValue;
     }
 
-    //чтение значения с потенциометра температуры
+    //чтение значения установленной температуры
     void readPotentiometr() {
-      // this->Setpoint = map(this->getOversampled(this->potentiometerPin), 0, 1024, 0, TEMP_MAX) ;
-      //todo теперь значения с энкодера
-      // this->Setpoint = encCounter;
+       this->Setpoint = encCounter;
     }
 
     void readhermeticContactState() {
@@ -194,12 +192,10 @@ class Thermofan {
     //вывод
     void echo () {
       this->echoDisplay(this->Input, 0);
-      //this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay(encCounter, 1);
+      this->echoDisplay(this->Setpoint, 1);
       this->echoDisplay(this->hermeticContactState, 2);
       this->echoDisplay(warmcount, 0, 5);
       this->echoDisplay(this->Output, 0, 9);
-      //      this->echoDisplay( thisdirection , 1, 9);
     }
 
     //сам вывод на дисплей или куда надо
