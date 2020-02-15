@@ -5,11 +5,26 @@
 //Температура после которой фен снова начнет свою работу после аварийного охлаждения
 #define TEMP_MIN_ON 50
 // Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
-#define TIME_ECHO 1000
+#define TIME_ECHO 50
+
+// для энкодера
+#define ENC_LEFT 1
+#define ENC_RIGHT 0
+#define MILLIS_CHANGE_DIRECTION 100
+int value = 0;
+uint32_t lastTickEncoder;
+bool encDirection = 0;
+bool encButtonChange = 0;
+#define ENC_A 2       // пин энкодера
+#define ENC_B 4       // пин энкодера
+#define ENC_TYPE 1    // тип энкодера, 0 или 1
+volatile int encCounter = 0, encCounterFan = 100;
+volatile boolean state0, lastState, turnFlag;
 
 int Testloop = 0;
-iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
-extern uint8_t MediumFont[];  // Подключаем шрифт MediumFont.
+//iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
+//extern uint8_t MediumFont[];  // Подключаем шрифт MediumFont.
+U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
 uint32_t       mil = 0; //текущие милисекунды для вывода на экран
 int countzerocross = 0;
 int warmcount = 10;
@@ -26,7 +41,6 @@ class Thermofan {
     int error = 0;
 
     const int speedfanPin = 5;
-    
 
     // Пин потенциометра температуры нагрева
     const int potentiometerPin = A1;
@@ -37,6 +51,8 @@ class Thermofan {
     const int hermeticContactPin = 10;
     // Значение геркона
     bool hermeticContactState = false;
+
+    bool changeEncoderButton = true;
 
     //включен ли нагрев фена
     bool warmingFan = true;
@@ -54,38 +70,67 @@ class Thermofan {
 
     int speedfan;
 
+
   public:
     //Конструктор
     Thermofan() {
       this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 1, 0, 0.7, DIRECT);
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
-      pinMode(4, OUTPUT);
       pinMode(5, OUTPUT);
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
       // оптимально 80
       this->fanpid->SetSampleTime(80);
       //      this->fanpid->SetOutputLimits(0,250);
-      myOLED.begin(); // Инициируем работу с дисплеем.
-      myOLED.setFont(MediumFont);
-      //отключаем автообновление, так будет быстрее вывод всего экрана
-      myOLED.autoUpdate(false);
-      //      myOLED.invText();
-      attachInterrupt(1,this->attachFun,FALLING);
+      u8x8.begin();
+      u8x8.setPowerSave(0);
+      u8x8.setFont(u8x8_font_chroma48medium8_r);
+      attachInterrupt(1, this->attachFun, FALLING);
+      attachInterrupt(0, this->attachEncoder, CHANGE);
       this->speedfan = 200;
     }
-    
-    static void attachFun(){
+
+    static void attachEncoder() {
+      state0 = digitalRead(ENC_A);
+      int thisdirection = 0;
+      if (state0 != lastState) {
+#if (ENC_TYPE == 2)
+        turnFlag = !turnFlag;
+        if (turnFlag)
+          thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
+#else
+        thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
+#endif
+        if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < millis()) {
+          encDirection = thisdirection;
+        }
+        if (encDirection == ENC_RIGHT) {
+          if (encButtonChange)encCounter += 1;
+          else encCounterFan += 1;
+        } else {
+          if (encButtonChange) encCounter -= 1;
+          else encCounterFan -= 1;
+        }
+        lastTickEncoder = millis();
+        lastState = state0;
+        if (encCounter < 0)encCounter = 0;
+        if (encCounter > 500)encCounter = 500;
+        if (encCounterFan < 100)encCounterFan = 100;
+        if (encCounterFan > 255)encCounterFan = 255;
+      }
+    }
+
+    static void attachFun() {
       countzerocross++;
-      if(countzerocross > 100)countzerocross = 0;
+      if (countzerocross > 100)countzerocross = 0;
       //если меньше то греем если больше то отключаем
-      if(warmcount <= countzerocross || warmcount < 0 ){
-          digitalWrite(9, LOW);
-            digitalWrite(13, LOW);
-      }else{
-          digitalWrite(9, HIGH);
-            digitalWrite(13, LOW);
+      if (warmcount <= countzerocross || warmcount < 0 ) {
+        digitalWrite(9, LOW);
+        digitalWrite(13, LOW);
+      } else {
+        digitalWrite(9, HIGH);
+        digitalWrite(13, LOW);
       }
     }
 
@@ -115,13 +160,22 @@ class Thermofan {
       this->Input = this->thermocoupleValue;
     }
 
-    //чтение значения с потенциометра температуры
+    //чтение значения установленной температуры
     void readPotentiometr() {
-      this->Setpoint = map(this->getOversampled(this->potentiometerPin), 0, 1024, 0, TEMP_MAX) ;
+      this->Setpoint = encCounter;
     }
 
     void readhermeticContactState() {
       this->hermeticContactState = !getOversampledDigital(this->hermeticContactPin);
+    }
+
+    void readEncoderButtonState() {
+      if (!getOversampledDigital(8)) {
+        if (this->changeEncoderButton)encButtonChange = !encButtonChange;
+        this->changeEncoderButton = false;
+      } else {
+        this->changeEncoderButton = true;
+      }
     }
 
     //нагрев фена
@@ -143,13 +197,11 @@ class Thermofan {
       }
       if (this->Setpoint < 20 || this->hermeticContactState  || !this->warmingFan ) {
         warmcount = 0;
-//        analogWrite(this->warmingLed, LOW);
       } else {
         // Делаем расчет значения для пид
         this->fanpid->Compute();
         //нагрев тена
         warmcount = this->Output;
-//        digitalWrite(this->warmingLed, HIGH);      
       }
     }
 
@@ -157,43 +209,45 @@ class Thermofan {
     void echo () {
       this->echoDisplay(this->Input, 0);
       this->echoDisplay(this->Setpoint, 1);
+      this->echoDisplay(encCounterFan, 1, 5);
       this->echoDisplay(this->hermeticContactState, 2);
-      this->echoDisplay(warmcount, 0, 50);
-      this->echoDisplay(this->Output, 0, 90);
-      //обновление дисплея выводит все за 1 раз(с автообновление каждый print обновлял экран что снижало сокрость работы)
-      myOLED.update();
+      this->echoDisplay(warmcount, 0, 5);
+      this->echoDisplay(this->Output, 0, 9);
     }
 
     //сам вывод на дисплей или куда надо
     void echoDisplay(int i) {
-      myOLED.setCursor(0, 17);
-      myOLED.print(i);
+      char strt[11];
+      sprintf(strt, "%d  ", i);
+      u8x8.drawString(0, 0, strt);
       return;
     }
 
     void echoDisplay(int i, int str) {
-      myOLED.setCursor(0, (str + 1) * 17);
-      myOLED.print(i);
-      myOLED.print(" ");
+      char strt[11];
+      sprintf(strt, "%d  ", i);
+      u8x8.drawString(0, str, strt);
       return;
     }
 
     void echoDisplay(int i, int str, int x) {
-      myOLED.setCursor(x, (str + 1) * 17);
-      myOLED.print(i);
-      myOLED.print(" ");
+      char strt[11];
+      sprintf(strt, "%d  ", i);
+      u8x8.drawString(x, str, strt);
       return;
     }
 
     void echoDisplay(char* i, int str) {
-      myOLED.setCursor(40, (str + 1) * 17);
-      myOLED.print(i);
+      u8x8.drawString(0, str, i);
       return;
     }
 
     void loopth() {
+      this->speedfan = encCounterFan;
       // Считыываем состояние геркона
       this->readhermeticContactState();
+      // Считываем значение кнопки энкодера
+      this->readEncoderButtonState();
       // Считываем с пина значение температуры
       this->getTenTemperature();
       // Считыаем значение с потенциометра
@@ -219,14 +273,14 @@ class Thermofan {
       this->warming();
       Testloop++;
       //скорость вращения фена
-       if(this->error == 0){
+      if (this->error == 0) {
         if ( this->Input < 15 && this->Setpoint < 10) {
           this->speedfan = 0;
-        }else {
-           this->speedfan = 200;
+        } else {
+          this->speedfan = 200;
         }
       }
-       analogWrite(this->speedfanPin, this->speedfan);
+      analogWrite(this->speedfanPin, this->speedfan);
     }
-    
+
 };
