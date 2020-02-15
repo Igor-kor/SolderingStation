@@ -18,7 +18,7 @@ bool encButtonChange = 0;
 #define ENC_A 2       // пин энкодера
 #define ENC_B 4       // пин энкодера
 #define ENC_TYPE 1    // тип энкодера, 0 или 1
-volatile int encCounter = 0, encCounterFan = 0;
+volatile int encCounter = 0, encCounterFan = 100;
 volatile boolean state0, lastState, turnFlag;
 
 int Testloop = 0;
@@ -116,6 +116,8 @@ class Thermofan {
         lastState = state0;
         if (encCounter < 0)encCounter = 0;
         if (encCounter > 500)encCounter = 500;
+        if (encCounterFan < 100)encCounterFan = 100;
+        if (encCounterFan > 255)encCounterFan = 255;
       }
     }
 
@@ -241,6 +243,7 @@ class Thermofan {
     }
 
     void loopth() {
+      this->speedfan = encCounterFan;
       // Считыываем состояние геркона
       this->readhermeticContactState();
       // Считываем значение кнопки энкодера
