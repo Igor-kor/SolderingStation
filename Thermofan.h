@@ -243,7 +243,6 @@ class Thermofan {
     }
 
     void loopth() {
-      this->speedfan = encCounterFan;
       // Считыываем состояние геркона
       this->readhermeticContactState();
       // Считываем значение кнопки энкодера
@@ -277,7 +276,7 @@ class Thermofan {
         if ( this->Input < 15 && this->Setpoint < 10) {
           this->speedfan = 0;
         } else {
-          this->speedfan = 200;
+          this->speedfan = encCounterFan;
         }
       }
       analogWrite(this->speedfanPin, this->speedfan);
