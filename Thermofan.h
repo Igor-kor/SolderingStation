@@ -14,10 +14,11 @@
 int value = 0;
 uint32_t lastTickEncoder;
 bool encDirection = 0;
+bool encButtonChange = 0;
 #define ENC_A 2       // пин энкодера
 #define ENC_B 4       // пин энкодера
 #define ENC_TYPE 1    // тип энкодера, 0 или 1
-volatile int encCounter;
+volatile int encCounter = 0, encCounterFan = 0;
 volatile boolean state0, lastState, turnFlag;
 
 int Testloop = 0;
@@ -50,6 +51,8 @@ class Thermofan {
     const int hermeticContactPin = 10;
     // Значение геркона
     bool hermeticContactState = false;
+
+    bool changeEncoderButton = true;
 
     //включен ли нагрев фена
     bool warmingFan = true;
@@ -103,9 +106,11 @@ class Thermofan {
           encDirection = thisdirection;
         }
         if (encDirection == ENC_RIGHT) {
-          encCounter += 1;
+          if (encButtonChange)encCounter += 1;
+          else encCounterFan += 1;
         } else {
-          encCounter -= 1;
+          if (encButtonChange) encCounter -= 1;
+          else encCounterFan -= 1;
         }
         lastTickEncoder = millis();
         lastState = state0;
@@ -155,11 +160,20 @@ class Thermofan {
 
     //чтение значения установленной температуры
     void readPotentiometr() {
-       this->Setpoint = encCounter;
+      this->Setpoint = encCounter;
     }
 
     void readhermeticContactState() {
       this->hermeticContactState = !getOversampledDigital(this->hermeticContactPin);
+    }
+
+    void readEncoderButtonState() {
+      if (!getOversampledDigital(8)) {
+        if (this->changeEncoderButton)encButtonChange = !encButtonChange;
+        this->changeEncoderButton = false;
+      } else {
+        this->changeEncoderButton = true;
+      }
     }
 
     //нагрев фена
@@ -193,6 +207,7 @@ class Thermofan {
     void echo () {
       this->echoDisplay(this->Input, 0);
       this->echoDisplay(this->Setpoint, 1);
+      this->echoDisplay(encCounterFan, 1, 5);
       this->echoDisplay(this->hermeticContactState, 2);
       this->echoDisplay(warmcount, 0, 5);
       this->echoDisplay(this->Output, 0, 9);
@@ -228,6 +243,8 @@ class Thermofan {
     void loopth() {
       // Считыываем состояние геркона
       this->readhermeticContactState();
+      // Считываем значение кнопки энкодера
+      this->readEncoderButtonState();
       // Считываем с пина значение температуры
       this->getTenTemperature();
       // Считыаем значение с потенциометра
