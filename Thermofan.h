@@ -14,12 +14,12 @@
 int value = 0;
 uint32_t lastTickEncoder;
 bool encDirection = 0;
-bool encButtonChange = 0;
+bool encButtonChange = 1;
 #define ENC_A 2       // пин энкодера
 #define ENC_B 4       // пин энкодера
 #define ENC_TYPE 1    // тип энкодера, 0 или 1
 volatile int encCounter = 0, encCounterFan = 100;
-volatile boolean state0, lastState, turnFlag;
+volatile boolean state0, lastState, turnFlag = false;
 
 int Testloop = 0;
 //iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
@@ -89,28 +89,28 @@ class Thermofan {
       attachInterrupt(1, this->attachFun, FALLING);
       attachInterrupt(0, this->attachEncoder, CHANGE);
       this->speedfan = 200;
+      EEPROM.get(0, encCounter);
+      EEPROM.get(2, encCounterFan);
     }
 
     static void attachEncoder() {
       state0 = digitalRead(ENC_A);
       int thisdirection = 0;
       if (state0 != lastState) {
-#if (ENC_TYPE == 2)
         turnFlag = !turnFlag;
-        if (turnFlag)
-          thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-#else
         thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-#endif
+
         if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < millis()) {
           encDirection = thisdirection;
         }
-        if (encDirection == ENC_RIGHT) {
-          if (encButtonChange)encCounter += 1;
-          else encCounterFan += 1;
-        } else {
-          if (encButtonChange) encCounter -= 1;
-          else encCounterFan -= 1;
+        if (turnFlag) {
+          if (encDirection == ENC_RIGHT ) {
+            if (encButtonChange)encCounter += 1;
+            else encCounterFan += 1;
+          } else {
+            if (encButtonChange) encCounter -= 1;
+            else encCounterFan -= 1;
+          }
         }
         lastTickEncoder = millis();
         lastState = state0;
@@ -171,7 +171,12 @@ class Thermofan {
 
     void readEncoderButtonState() {
       if (!getOversampledDigital(8)) {
-        if (this->changeEncoderButton)encButtonChange = !encButtonChange;
+        if (this->changeEncoderButton) {
+          encButtonChange = !encButtonChange;
+          // пока-что при нажатии на энкодер будет сохранятся установленные значения
+          EEPROM.put(0, encCounter);
+          EEPROM.put(2, encCounterFan);
+        }
         this->changeEncoderButton = false;
       } else {
         this->changeEncoderButton = true;

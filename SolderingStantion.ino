@@ -3,6 +3,7 @@
 #include <U8g2lib.h>
 #include <SPI.h>
 #include <Wire.h>
+#include <EEPROM.h>
 #include "Thermofan.h"
 
 Thermofan* thermofan1;
