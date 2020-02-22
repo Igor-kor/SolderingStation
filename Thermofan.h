@@ -105,11 +105,11 @@ class Thermofan {
         }
         if (turnFlag) {
           if (encDirection == ENC_RIGHT ) {
-            if (encButtonChange)encCounter += 1;
-            else encCounterFan += 1;
-          } else {
-            if (encButtonChange) encCounter -= 1;
+            if (encButtonChange)encCounter -= 1;
             else encCounterFan -= 1;
+          } else {
+            if (encButtonChange) encCounter += 1;
+            else encCounterFan += 1;
           }
         }
         lastTickEncoder = millis();
