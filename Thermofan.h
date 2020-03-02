@@ -1,9 +1,9 @@
 //Максимальная температура на потенциометре
 #define TEMP_MAX 600
 //Температура при достижении которой отключится нагрев(для аварийного охлаждения);
-#define TEMP_MAX_OFF 500
+#define TEMP_MAX_OFF 600
 //Температура после которой фен снова начнет свою работу после аварийного охлаждения
-#define TEMP_MIN_ON 50
+#define TEMP_MIN_ON 80
 // Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
 #define TIME_ECHO 50
 
@@ -65,7 +65,6 @@ class Thermofan {
     // Для пид регулировки
     double Input , Setpoint, Output;
     // Оптимальные значения 0.5 0 0.7
-    // Как настраивать http://full-chip.net/arduino-proekty/110-pid-regulyator-dlya-nagrevaohlazhdeniya.html
     PID* fanpid;
 
     int speedfan;
@@ -74,7 +73,8 @@ class Thermofan {
   public:
     //Конструктор
     Thermofan() {
-      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 1, 0, 0.7, DIRECT);
+      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.4, 0.1, 0, DIRECT);
+      this->fanpid->SetOutputLimits(0,20);
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
       pinMode(5, OUTPUT);
@@ -89,6 +89,7 @@ class Thermofan {
       attachInterrupt(1, this->attachFun, FALLING);
       attachInterrupt(0, this->attachEncoder, CHANGE);
       this->speedfan = 200;
+      this->loopth();
       EEPROM.get(0, encCounter);
       EEPROM.get(2, encCounterFan);
     }
@@ -123,13 +124,12 @@ class Thermofan {
 
     static void attachFun() {
       countzerocross++;
-      if (countzerocross > 100)countzerocross = 0;
-      //если меньше то греем если больше то отключаем
-      if (warmcount <= countzerocross || warmcount < 0 ) {
+      if (countzerocross >= (20-warmcount) && warmcount > 0){
+         digitalWrite(9, HIGH);
+        digitalWrite(13, HIGH);
+        countzerocross = 0;
+      }else{
         digitalWrite(9, LOW);
-        digitalWrite(13, LOW);
-      } else {
-        digitalWrite(9, HIGH);
         digitalWrite(13, LOW);
       }
     }
@@ -195,6 +195,8 @@ class Thermofan {
         this->speedfan = 255;
       }
       if (this->error == 1) {
+        //в случае перегрева если не работает оптопара вызовим сами
+        this->attachFun();
         if (this->warmingFan == false && this->Input < TEMP_MIN_ON) {
           this->warmingFan = true;
           this->error = 0;
