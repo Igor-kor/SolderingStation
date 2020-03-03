@@ -169,13 +169,17 @@ class Thermofan {
       this->hermeticContactState = !getOversampledDigital(this->hermeticContactPin);
     }
 
+    void saveButton(){
+      if (!getOversampledDigital(7)) {
+         // будет сохранятся установленные значения
+          EEPROM.put(0, encCounter);
+          EEPROM.put(2, encCounterFan);
+      }
+    }
     void readEncoderButtonState() {
       if (!getOversampledDigital(8)) {
         if (this->changeEncoderButton) {
           encButtonChange = !encButtonChange;
-          // пока-что при нажатии на энкодер будет сохранятся установленные значения
-          EEPROM.put(0, encCounter);
-          EEPROM.put(2, encCounterFan);
         }
         this->changeEncoderButton = false;
       } else {
@@ -254,6 +258,8 @@ class Thermofan {
       this->readhermeticContactState();
       // Считываем значение кнопки энкодера
       this->readEncoderButtonState();
+      // Считываем значение кнопки сохранения
+      this->saveButton();
       // Считываем с пина значение температуры
       this->getTenTemperature();
       // Считыаем значение с потенциометра
