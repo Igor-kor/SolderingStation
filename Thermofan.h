@@ -14,7 +14,7 @@
 int value = 0;
 uint32_t lastTickEncoder;
 bool encDirection = 0;
-bool encButtonChange = 1;
+bool encButtonChange = 0;
 #define ENC_A 2       // пин энкодера
 #define ENC_B 4       // пин энкодера
 #define ENC_TYPE 1    // тип энкодера, 0 или 1
@@ -154,6 +154,16 @@ class Thermofan {
       return (result >> 3) > 0;
     }
 
+        //функция оверсэмплинга 
+    bool getOversampledDigitalLow(int pin) {
+      unsigned long int result = 0;
+      for (byte z = 0; z < 8; z++) { //делаем 8 замера
+        result += !digitalRead(pin); //складываем всё вместе
+      }
+      //делаем побитовый сдвиг для полученного значения (8 это 2 в 3-ой степени, поэтому »3)
+      return (result >> 3) > 0;
+    }
+
     // получение температуры с термопары фена
     void getTenTemperature() {
       this->thermocoupleValue =  abs(int(206.36 * this->getOversampled(this->thermocouplePin) * (5.0 / 1023.0) - 13.263));
@@ -177,7 +187,7 @@ class Thermofan {
       }
     }
     void readEncoderButtonState() {
-      if (!getOversampledDigital(8)) {
+      if (!getOversampledDigitalLow(8)) {
         if (this->changeEncoderButton) {
           encButtonChange = !encButtonChange;
         }
