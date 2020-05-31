@@ -1,9 +1,9 @@
 //Максимальная температура на потенциометре
 #define TEMP_MAX 600
 //Температура при достижении которой отключится нагрев(для аварийного охлаждения);
-#define TEMP_MAX_OFF 500
+#define TEMP_MAX_OFF 600
 //Температура после которой фен снова начнет свою работу после аварийного охлаждения
-#define TEMP_MIN_ON 50
+#define TEMP_MIN_ON 80
 // Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
 #define TIME_ECHO 50
 
@@ -19,7 +19,7 @@ bool encButtonChange = 0;
 #define ENC_B 4       // пин энкодера
 #define ENC_TYPE 1    // тип энкодера, 0 или 1
 volatile int encCounter = 0, encCounterFan = 100;
-volatile boolean state0, lastState, turnFlag;
+volatile boolean state0, lastState, turnFlag = false;
 
 int Testloop = 0;
 //iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
@@ -65,16 +65,20 @@ class Thermofan {
     // Для пид регулировки
     double Input , Setpoint, Output;
     // Оптимальные значения 0.5 0 0.7
-    // Как настраивать http://full-chip.net/arduino-proekty/110-pid-regulyator-dlya-nagrevaohlazhdeniya.html
     PID* fanpid;
 
     int speedfan;
+
+    // Строки для вывода, если не делать массив то между буквами кирилицы будут пробелы
+    char ostiv[10] = {'О','С','Т','Ы','В','А','Н','И','Е','\0'};
+    char nagrev[10] = {'Н','А','Г','Р','Е','В',' ',' ',' ','\0'};
 
 
   public:
     //Конструктор
     Thermofan() {
-      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 1, 0, 0.7, DIRECT);
+      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.4, 0.1, 0, DIRECT);
+      this->fanpid->SetOutputLimits(0, 20);
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
       pinMode(5, OUTPUT);
@@ -85,32 +89,34 @@ class Thermofan {
       //      this->fanpid->SetOutputLimits(0,250);
       u8x8.begin();
       u8x8.setPowerSave(0);
-      u8x8.setFont(u8x8_font_chroma48medium8_r);
+      u8x8.setFont(font_ikor);
+      //u8x8.setFont(u8x8_font_chroma48medium8_r);
       attachInterrupt(1, this->attachFun, FALLING);
       attachInterrupt(0, this->attachEncoder, CHANGE);
       this->speedfan = 200;
+      this->loopth();
+      EEPROM.get(0, encCounter);
+      EEPROM.get(2, encCounterFan);
     }
 
     static void attachEncoder() {
       state0 = digitalRead(ENC_A);
       int thisdirection = 0;
       if (state0 != lastState) {
-#if (ENC_TYPE == 2)
         turnFlag = !turnFlag;
-        if (turnFlag)
-          thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-#else
         thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-#endif
+
         if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < millis()) {
           encDirection = thisdirection;
         }
-        if (encDirection == ENC_RIGHT) {
-          if (encButtonChange)encCounter += 1;
-          else encCounterFan += 1;
-        } else {
-          if (encButtonChange) encCounter -= 1;
-          else encCounterFan -= 1;
+        if (turnFlag) {
+          if (encDirection == ENC_RIGHT ) {
+            if (encButtonChange)encCounter -= 1;
+            else encCounterFan -= 1;
+          } else {
+            if (encButtonChange) encCounter += 1;
+            else encCounterFan += 1;
+          }
         }
         lastTickEncoder = millis();
         lastState = state0;
@@ -123,13 +129,12 @@ class Thermofan {
 
     static void attachFun() {
       countzerocross++;
-      if (countzerocross > 100)countzerocross = 0;
-      //если меньше то греем если больше то отключаем
-      if (warmcount <= countzerocross || warmcount < 0 ) {
-        digitalWrite(9, LOW);
-        digitalWrite(13, LOW);
-      } else {
+      if (countzerocross >= (20 - warmcount) && warmcount > 0) {
         digitalWrite(9, HIGH);
+        digitalWrite(13, HIGH);
+        countzerocross = 0;
+      } else {
+        digitalWrite(9, LOW);
         digitalWrite(13, LOW);
       }
     }
@@ -154,6 +159,16 @@ class Thermofan {
       return (result >> 3) > 0;
     }
 
+    //функция оверсэмплинга
+    bool getOversampledDigitalLow(int pin) {
+      unsigned long int result = 0;
+      for (byte z = 0; z < 8; z++) { //делаем 8 замера
+        result += !digitalRead(pin); //складываем всё вместе
+      }
+      //делаем побитовый сдвиг для полученного значения (8 это 2 в 3-ой степени, поэтому »3)
+      return (result >> 3) > 0;
+    }
+
     // получение температуры с термопары фена
     void getTenTemperature() {
       this->thermocoupleValue =  abs(int(206.36 * this->getOversampled(this->thermocouplePin) * (5.0 / 1023.0) - 13.263));
@@ -169,9 +184,18 @@ class Thermofan {
       this->hermeticContactState = !getOversampledDigital(this->hermeticContactPin);
     }
 
+    void saveButton() {
+      if (!getOversampledDigital(7)) {
+        // будет сохранятся установленные значения
+        EEPROM.put(0, encCounter);
+        EEPROM.put(2, encCounterFan);
+      }
+    }
     void readEncoderButtonState() {
-      if (!getOversampledDigital(8)) {
-        if (this->changeEncoderButton)encButtonChange = !encButtonChange;
+      if (!getOversampledDigitalLow(8)) {
+        if (this->changeEncoderButton) {
+          encButtonChange = !encButtonChange;
+        }
         this->changeEncoderButton = false;
       } else {
         this->changeEncoderButton = true;
@@ -190,6 +214,8 @@ class Thermofan {
         this->speedfan = 255;
       }
       if (this->error == 1) {
+        //в случае перегрева если не работает оптопара вызовим сами
+        this->attachFun();
         if (this->warmingFan == false && this->Input < TEMP_MIN_ON) {
           this->warmingFan = true;
           this->error = 0;
@@ -208,12 +234,15 @@ class Thermofan {
     //вывод
     void echo () {
       this->echoDisplay(this->Input, 0);
+      this->echoDisplay("C*", 0, 3);
       this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay(encCounterFan, 1, 5);
-      this->echoDisplay(this->hermeticContactState, 2);
-      this->echoDisplay(warmcount, 0, 5);
-      this->echoDisplay(this->Output, 0, 9);
-    }
+      this->echoDisplay("C°", 1, 3);
+      this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7);
+      this->echoDisplay("%", 1, 10);
+      this->echoDisplay(this->hermeticContactState?ostiv:nagrev, 2, 0);
+      this->echoDisplay(warmcount, 0, 7);
+      //this->echoDisplay(this->Output, 0, 9);
+    } 
 
     //сам вывод на дисплей или куда надо
     void echoDisplay(int i) {
@@ -242,11 +271,18 @@ class Thermofan {
       return;
     }
 
+    void echoDisplay(char* i, int str, int x) {
+      u8x8.drawString(x, str, i);
+      return;
+    }
+
     void loopth() {
       // Считыываем состояние геркона
       this->readhermeticContactState();
       // Считываем значение кнопки энкодера
       this->readEncoderButtonState();
+      // Считываем значение кнопки сохранения
+      this->saveButton();
       // Считываем с пина значение температуры
       this->getTenTemperature();
       // Считыаем значение с потенциометра
