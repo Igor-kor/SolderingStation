@@ -69,12 +69,16 @@ class Thermofan {
 
     int speedfan;
 
+    // Строки для вывода, если не делать массив то между буквами кирилицы будут пробелы
+    char ostiv[10] = {'О','С','Т','Ы','В','А','Н','И','Е','\0'};
+    char nagrev[10] = {'Н','А','Г','Р','Е','В',' ',' ',' ','\0'};
+
 
   public:
     //Конструктор
     Thermofan() {
       this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.4, 0.1, 0, DIRECT);
-      this->fanpid->SetOutputLimits(0,20);
+      this->fanpid->SetOutputLimits(0, 20);
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
       pinMode(5, OUTPUT);
@@ -85,7 +89,8 @@ class Thermofan {
       //      this->fanpid->SetOutputLimits(0,250);
       u8x8.begin();
       u8x8.setPowerSave(0);
-      u8x8.setFont(u8x8_font_chroma48medium8_r);
+      u8x8.setFont(font_ikor);
+      //u8x8.setFont(u8x8_font_chroma48medium8_r);
       attachInterrupt(1, this->attachFun, FALLING);
       attachInterrupt(0, this->attachEncoder, CHANGE);
       this->speedfan = 200;
@@ -124,11 +129,11 @@ class Thermofan {
 
     static void attachFun() {
       countzerocross++;
-      if (countzerocross >= (20-warmcount) && warmcount > 0){
-         digitalWrite(9, HIGH);
+      if (countzerocross >= (20 - warmcount) && warmcount > 0) {
+        digitalWrite(9, HIGH);
         digitalWrite(13, HIGH);
         countzerocross = 0;
-      }else{
+      } else {
         digitalWrite(9, LOW);
         digitalWrite(13, LOW);
       }
@@ -154,7 +159,7 @@ class Thermofan {
       return (result >> 3) > 0;
     }
 
-        //функция оверсэмплинга 
+    //функция оверсэмплинга
     bool getOversampledDigitalLow(int pin) {
       unsigned long int result = 0;
       for (byte z = 0; z < 8; z++) { //делаем 8 замера
@@ -179,11 +184,11 @@ class Thermofan {
       this->hermeticContactState = !getOversampledDigital(this->hermeticContactPin);
     }
 
-    void saveButton(){
+    void saveButton() {
       if (!getOversampledDigital(7)) {
-         // будет сохранятся установленные значения
-          EEPROM.put(0, encCounter);
-          EEPROM.put(2, encCounterFan);
+        // будет сохранятся установленные значения
+        EEPROM.put(0, encCounter);
+        EEPROM.put(2, encCounterFan);
       }
     }
     void readEncoderButtonState() {
@@ -229,12 +234,15 @@ class Thermofan {
     //вывод
     void echo () {
       this->echoDisplay(this->Input, 0);
+      this->echoDisplay("C*", 0, 3);
       this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay(encCounterFan, 1, 5);
-      this->echoDisplay(this->hermeticContactState, 2);
-      this->echoDisplay(warmcount, 0, 5);
-      this->echoDisplay(this->Output, 0, 9);
-    }
+      this->echoDisplay("C°", 1, 3);
+      this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7);
+      this->echoDisplay("%", 1, 10);
+      this->echoDisplay(this->hermeticContactState?ostiv:nagrev, 2, 0);
+      this->echoDisplay(warmcount, 0, 7);
+      //this->echoDisplay(this->Output, 0, 9);
+    } 
 
     //сам вывод на дисплей или куда надо
     void echoDisplay(int i) {
@@ -260,6 +268,11 @@ class Thermofan {
 
     void echoDisplay(char* i, int str) {
       u8x8.drawString(0, str, i);
+      return;
+    }
+
+    void echoDisplay(char* i, int str, int x) {
+      u8x8.drawString(x, str, i);
       return;
     }
 

@@ -20,4 +20,7 @@
 - по настройке коэфициентов пид регулятора http://lazysmart.ru/osnovy-avtomatiki/nastrojka-pid-regulyatora/
 - дискретный регулятор мощности (теория, как в итоге должно работать) https://www.qrz.ru/schemes/contribute/digest/bp169.shtml
 
+Прототип
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/foto1.jpg)
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/foto2.jpg)
 
