@@ -236,7 +236,7 @@ class Thermofan {
       this->echoDisplay(this->Input, 0);
       this->echoDisplay("C*", 0, 3);
       this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay("C°", 1, 3);
+      this->echoDisplay("C*", 1, 3);
       this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7);
       this->echoDisplay("%", 1, 10);
       this->echoDisplay(this->hermeticContactState?ostiv:nagrev, 2, 0);
