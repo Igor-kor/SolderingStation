@@ -171,8 +171,14 @@ class Thermofan {
 
     // получение температуры с термопары фена
     void getTenTemperature() {
-      this->thermocoupleValue =  abs(int(206.36 * this->getOversampled(this->thermocouplePin) * (5.0 / 1023.0) - 13.263));
+      
+      this->thermocoupleValue =  correction(abs(int(206.36 * this->getOversampled(this->thermocouplePin) * (5.0 / 1023.0) - 13.263)));
       this->Input = this->thermocoupleValue;
+    }
+
+    // корректировка
+    int correction(int x){
+      return  x-int(0.4266*x-11.4621);
     }
 
     //чтение значения установленной температуры
