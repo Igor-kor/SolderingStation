@@ -7,6 +7,8 @@
 // Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
 #define TIME_ECHO 50
 
+#define WARMTICK 25
+
 // для энкодера
 #define ENC_LEFT 1
 #define ENC_RIGHT 0
@@ -77,15 +79,15 @@ class Thermofan {
   public:
     //Конструктор
     Thermofan() {
-      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.4, 0.1, 0, DIRECT);
-      this->fanpid->SetOutputLimits(0, 20);
+      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 1, 0.08, 0.3, DIRECT);
+      this->fanpid->SetOutputLimits(0, WARMTICK);
       pinMode(optronPin, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
       pinMode(5, OUTPUT);
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
       // оптимально 80
-      this->fanpid->SetSampleTime(80);
+      this->fanpid->SetSampleTime(1);
       //      this->fanpid->SetOutputLimits(0,250);
       u8x8.begin();
       u8x8.setPowerSave(0);
@@ -128,15 +130,15 @@ class Thermofan {
     }
 
     static void attachFun() {
-      countzerocross++;
-      if (countzerocross >= (20 - warmcount) && warmcount > 0) {
+      if (countzerocross >= (WARMTICK - warmcount) && warmcount > 0) {
         digitalWrite(9, HIGH);
         digitalWrite(13, HIGH);
         countzerocross = 0;
       } else {
         digitalWrite(9, LOW);
         digitalWrite(13, LOW);
-      }
+      }      
+      countzerocross++;
     }
 
     //функция оверсэмплинга
@@ -178,7 +180,8 @@ class Thermofan {
 
     // корректировка
     int correction(int x){
-      return  x-int(0.4266*x-11.4621);
+     // return  x-int(0.4266*x-11.4621);
+     return x -(0.2087*x-23.2);
     }
 
     //чтение значения установленной температуры
@@ -248,6 +251,7 @@ class Thermofan {
       this->echoDisplay(this->hermeticContactState?ostiv:nagrev, 2, 0);
       this->echoDisplay(warmcount, 0, 7);
       //this->echoDisplay(this->Output, 0, 9);
+      Serial.println(this->getOversampled(this->thermocouplePin));
     } 
 
     //сам вывод на дисплей или куда надо
