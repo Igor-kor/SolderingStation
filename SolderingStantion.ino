@@ -15,6 +15,7 @@ Thermofan* thermofan1;
 
 void setup() {
   thermofan1 =  new Thermofan();
+  Serial.begin(9600);
 }
 
 void loop() {
