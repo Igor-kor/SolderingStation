@@ -24,3 +24,9 @@
 ![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/foto1.jpg)
 ![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/foto2.jpg)
 
+Для правильной регулировки написал программу на C# показывающую график
+https://github.com/Igor-kor/ArduinoDiagramm
+До регулировки
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/screenbefore.jpg)
+После регулировки
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/screenafter.jpg)
