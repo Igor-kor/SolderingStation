@@ -21,11 +21,24 @@
 - дискретный регулятор мощности (теория, как в итоге должно работать) https://www.qrz.ru/schemes/contribute/digest/bp169.shtml
 
 Прототип
-![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/foto1.jpg)
-![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/foto2.jpg)
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/foto1.jpg)
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/foto2.jpg)
+
+В собраном виде
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/foto3.jpg)
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/foto4.jpg)
 
 Для правильной регулировки написал программу на C# показывающую график https://github.com/Igor-kor/ArduinoDiagramm
 - До регулировки
-![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/screenbefore.jpg)
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/screenbefore.jpg)
 - После регулировки
-![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/screenafter.jpg)
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/screenafter.jpg)
+
+Схемы
+- Определение перехода через 0
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/cheme1.jpg)
+- Управление турбиной фена
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/cheme2.jpg)
+- Усилитель для термопары
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/cheme3.png)
+
