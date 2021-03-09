@@ -1,54 +1,27 @@
-//Максимальная температура на потенциометре
-#define TEMP_MAX 600
-//Температура при достижении которой отключится нагрев(для аварийного охлаждения);
-#define TEMP_MAX_OFF 600
-//Температура после которой фен снова начнет свою работу после аварийного охлаждения
-#define TEMP_MIN_ON 80
-// Время вывода мс(вывод на дисплэй сильно замедляет ардуину)
-#define TIME_ECHO 50
+#include "ThermofanDef.h"
 
-#define WARMTICK 25
-
-// для энкодера
-#define ENC_LEFT 1
-#define ENC_RIGHT 0
-#define MILLIS_CHANGE_DIRECTION 100
 int value = 0;
 uint32_t lastTickEncoder;
 bool encDirection = 0;
 bool encButtonChange = 0;
-#define ENC_A 2       // пин энкодера
-#define ENC_B 4       // пин энкодера
-#define ENC_TYPE 1    // тип энкодера, 0 или 1
+
 volatile int encCounter = 0, encCounterFan = 100;
 volatile boolean state0, lastState, turnFlag = false;
 
-int Testloop = 0;
-//iarduino_OLED myOLED(0x3C);   // Объявляем объект myOLED, указывая адрес дисплея на шине I2C: 0x3C или 0x3D.
-//extern uint8_t MediumFont[];  // Подключаем шрифт MediumFont.
 U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
-uint32_t       mil = 0; //текущие милисекунды для вывода на экран
+uint32_t mil = 0; //текущие милисекунды для вывода на экран
 int countzerocross = 0;
 int warmcount = 10;
-
+bool statewarm = false;
+bool oldstatewarm = false;
 //также нужно сделать определения подключения фена в разьем
 //при разогреве сверх ххх температуры отключить нагрев, сообщить о неисправности
 class Thermofan {
-    // Пин термопары(операционного усилителя)
-    const int thermocouplePin = A0;
     // Значение температуры нагрева
     int thermocoupleValue = 0;
     // ОШИБКИ
     // 1 - Перегрев фена выше TEMP_MAX_OFF
     int error = 0;
-
-    const int speedfanPin = 5;
-
-    // Пин потенциометра температуры нагрева
-    const int potentiometerPin = A1;
-    // Пин оптопары нагрева фена
-    const int optronPin = 9;
-
     // Пин геркона
     const int hermeticContactPin = 10;
     // Значение геркона
@@ -81,7 +54,7 @@ class Thermofan {
     Thermofan() {
       this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 1, 0.08, 0.3, DIRECT);
       this->fanpid->SetOutputLimits(0, WARMTICK);
-      pinMode(optronPin, OUTPUT);
+      pinMode(OPTRON_PIN, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
       pinMode(5, OUTPUT);
       pinMode(this->hermeticContactPin, INPUT);
@@ -99,6 +72,11 @@ class Thermofan {
       this->loopth();
       EEPROM.get(0, encCounter);
       EEPROM.get(2, encCounterFan);
+
+
+      this->echoDisplay("C*", 0, 3);
+       this->echoDisplay("C*", 1, 3);
+         this->echoDisplay("%", 1, 10);
     }
 
     static void attachEncoder() {
@@ -131,14 +109,20 @@ class Thermofan {
 
     static void attachFun() {
       if (countzerocross >= (WARMTICK - warmcount) && warmcount > 0) {
-        digitalWrite(9, HIGH);
-        digitalWrite(13, HIGH);
+        //digitalWrite(9, HIGH);
+        statewarm = true;
+        //digitalWrite(13, HIGH);
         countzerocross = 0;
       } else {
-        digitalWrite(9, LOW);
-        digitalWrite(13, LOW);
+        statewarm = false;
+        //digitalWrite(9, LOW);
+        //digitalWrite(13, LOW);
       }      
       countzerocross++;
+      if(oldstatewarm!= statewarm){
+         digitalWrite(9, statewarm?HIGH:LOW);
+         oldstatewarm = statewarm;
+      }
     }
 
     //функция оверсэмплинга
@@ -174,7 +158,7 @@ class Thermofan {
     // получение температуры с термопары фена
     void getTenTemperature() {
       
-      this->thermocoupleValue =  correction(abs(int(206.36 * this->getOversampled(this->thermocouplePin) * (5.0 / 1023.0) - 13.263)));
+      this->thermocoupleValue =  correction(abs(int(206.36 * this->getOversampled(THERMOCOUPLE_PIN) * (5.0 / 1023.0) - 13.263)));
       this->Input = this->thermocoupleValue;
     }
 
@@ -243,36 +227,30 @@ class Thermofan {
     //вывод
     void echo () {
       this->echoDisplay(this->Input, 0);
-      this->echoDisplay("C*", 0, 3);
+      
       this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay("C*", 1, 3);
+     
       this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7);
-      this->echoDisplay("%", 1, 10);
-      this->echoDisplay(this->hermeticContactState?ostiv:nagrev, 2, 0);
+    
+      //this->echoDisplay(this->hermeticContactState?ostiv:nagrev, 2, 0);
       this->echoDisplay(warmcount, 0, 7);
       //this->echoDisplay(this->Output, 0, 9);
-      Serial.println(this->getOversampled(this->thermocouplePin));
+      //Serial.println(this->getOversampled(THERMOCOUPLE_PIN));
     } 
 
     //сам вывод на дисплей или куда надо
-    void echoDisplay(int i) {
-      char strt[11];
-      sprintf(strt, "%d  ", i);
-      u8x8.drawString(0, 0, strt);
+    void echoDisplay(int i) { 
+      u8x8.drawString(0, 0,  String(i).c_str());
       return;
     }
 
     void echoDisplay(int i, int str) {
-      char strt[11];
-      sprintf(strt, "%d  ", i);
-      u8x8.drawString(0, str, strt);
+      u8x8.drawString(0, str,  String(i).c_str());
       return;
     }
 
     void echoDisplay(int i, int str, int x) {
-      char strt[11];
-      sprintf(strt, "%d  ", i);
-      u8x8.drawString(x, str, strt);
+      u8x8.drawString(x, str, String(i).c_str());
       return;
     }
 
@@ -315,8 +293,7 @@ class Thermofan {
         }
       }
       // Нагрев фена
-      this->warming();
-      Testloop++;
+      this->warming(); 
       //скорость вращения фена
       if (this->error == 0) {
         if ( this->Input < 15 && this->Setpoint < 10) {
@@ -325,7 +302,7 @@ class Thermofan {
           this->speedfan = encCounterFan;
         }
       }
-      analogWrite(this->speedfanPin, this->speedfan);
+      analogWrite(SPEED_FAN_PIN, this->speedfan);
     }
 
 };
