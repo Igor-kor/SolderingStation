@@ -16,7 +16,7 @@
 
 // Время вывода мс(вывод на дисплей сильно замедляет ардуину)
 #ifndef TIME_ECHO
-  #define TIME_ECHO 50
+  #define TIME_ECHO 100
 #endif
 
 

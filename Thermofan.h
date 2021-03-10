@@ -6,6 +6,7 @@ bool encDirection = 0;
 bool encButtonChange = 0;
 
 volatile int encCounter = 0, encCounterFan = 100;
+volatile bool echoEncoder = true;
 volatile boolean state0, lastState, turnFlag = false;
 
 U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
@@ -61,20 +62,19 @@ class Thermofan {
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
       // оптимально 80
-      this->fanpid->SetSampleTime(1); 
+      this->fanpid->SetSampleTime(1);
       u8x8.begin();
       u8x8.setPowerSave(0);
       u8x8.setFont(font_ikor);
+      EEPROM.get(0, encCounter);
+      EEPROM.get(2, encCounterFan);
       attachInterrupt(1, this->attachFun, FALLING);
       attachInterrupt(0, this->attachEncoder, CHANGE);
       this->speedfan = 200;
-      this->loopth();
-      EEPROM.get(0, encCounter);
-      EEPROM.get(2, encCounterFan);
-
       this->echoDisplay("C*", 0, 3);
       this->echoDisplay("C*", 1, 3);
       this->echoDisplay("%", 1, 10);
+      this->loopth();
     }
 
     static void attachEncoder() {
@@ -82,16 +82,15 @@ class Thermofan {
       int thisdirection = 0;
       int tickEncoder = millis();
       int iterCount = 1;
-      if(tickEncoder - lastTickEncoder >10) {
+      if (tickEncoder - lastTickEncoder > 12) {
         iterCount = 1;
       }
-      if(tickEncoder - lastTickEncoder <10 && !turnFlag) {
-        iterCount = (12- (tickEncoder - lastTickEncoder))/2;
-      } 
+      if (tickEncoder - lastTickEncoder < 12 && !turnFlag) {
+        iterCount = (14 - (tickEncoder - lastTickEncoder)) / 2;
+      }
       if (state0 != lastState) {
         turnFlag = !turnFlag;
         thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-        
         if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < tickEncoder) {
           encDirection = thisdirection;
         }
@@ -103,10 +102,11 @@ class Thermofan {
             if (encButtonChange) encCounter += iterCount;
             else encCounterFan += iterCount;
           }
+          echoEncoder = true;
         }
         lastTickEncoder = tickEncoder;
         lastState = state0;
-        if (encCounter < 0)encCounter = 0;
+        if (encCounter < 20)encCounter = 20;
         if (encCounter > 500)encCounter = 500;
         if (encCounterFan < 100)encCounterFan = 100;
         if (encCounterFan > 255)encCounterFan = 255;
@@ -114,11 +114,11 @@ class Thermofan {
     }
 
     static void attachFun() {
-      if (countzerocross >= (WARMTICK - warmcount) && warmcount > 0) { 
-        statewarm = true; 
+      if (countzerocross >= (WARMTICK - warmcount) && warmcount > 0) {
+        statewarm = true;
         countzerocross = 0;
       } else {
-        statewarm = false;  
+        statewarm = false;
       }
       countzerocross++;
       if (oldstatewarm != statewarm) {
@@ -229,9 +229,18 @@ class Thermofan {
     //вывод
     void echo () {
       this->echoDisplay(this->Input, 0);
-      this->echoDisplay(this->Setpoint, 1);
-      this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7); 
-      if(this->hermeticContactState != this->oldhermeticContactState){
+      if (this->Input < 100) {
+        this->echoDisplay(" ", 0, 2);
+      }
+      if (this->Setpoint < 100) {
+        this->echoDisplay(" ", 1, 2);
+      }
+      if (echoEncoder) {
+        this->echoDisplay(this->Setpoint, 1);
+        this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7);
+        echoEncoder = false;
+      }
+      if (this->hermeticContactState != this->oldhermeticContactState) {
         this->echoDisplay(this->hermeticContactState ? ostiv : nagrev, 2, 0);
         this->oldhermeticContactState = this->hermeticContactState;
       }
@@ -284,12 +293,14 @@ class Thermofan {
           //отключаем нагрев во время вывода на дисплэй
           this->warmingFan = false;
           //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
+          //int tempwarm = warmcount;
+         // warmcount = 0;
           this->warming();
-          this->echo(); 
+          this->echo();
           //после вывода снова включаем нагрев
           this->warmingFan = true;
         } else {
-          this->echo(); 
+          this->echo();
         }
         mil = millis();
       }
