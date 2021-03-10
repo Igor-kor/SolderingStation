@@ -26,6 +26,7 @@ class Thermofan {
     const int hermeticContactPin = 10;
     // Значение геркона
     bool hermeticContactState = false;
+    bool oldhermeticContactState = true;
 
     bool changeEncoderButton = true;
 
@@ -45,8 +46,8 @@ class Thermofan {
     int speedfan;
 
     // Строки для вывода, если не делать массив то между буквами кирилицы будут пробелы
-    char ostiv[10] = {'О','С','Т','Ы','В','А','Н','И','Е','\0'};
-    char nagrev[10] = {'Н','А','Г','Р','Е','В',' ',' ',' ','\0'};
+    char ostiv[10] = {'О', 'С', 'Т', 'Ы', 'В', 'А', 'Н', 'И', 'Е', '\0'};
+    char nagrev[10] = {'Н', 'А', 'Г', 'Р', 'Е', 'В', ' ', ' ', ' ', '\0'};
 
 
   public:
@@ -60,12 +61,10 @@ class Thermofan {
       pinMode(this->hermeticContactPin, INPUT);
       this->fanpid->SetMode(AUTOMATIC);
       // оптимально 80
-      this->fanpid->SetSampleTime(1);
-      //      this->fanpid->SetOutputLimits(0,250);
+      this->fanpid->SetSampleTime(1); 
       u8x8.begin();
       u8x8.setPowerSave(0);
       u8x8.setFont(font_ikor);
-      //u8x8.setFont(u8x8_font_chroma48medium8_r);
       attachInterrupt(1, this->attachFun, FALLING);
       attachInterrupt(0, this->attachEncoder, CHANGE);
       this->speedfan = 200;
@@ -73,32 +72,39 @@ class Thermofan {
       EEPROM.get(0, encCounter);
       EEPROM.get(2, encCounterFan);
 
-
       this->echoDisplay("C*", 0, 3);
-       this->echoDisplay("C*", 1, 3);
-         this->echoDisplay("%", 1, 10);
+      this->echoDisplay("C*", 1, 3);
+      this->echoDisplay("%", 1, 10);
     }
 
     static void attachEncoder() {
       state0 = digitalRead(ENC_A);
       int thisdirection = 0;
+      int tickEncoder = millis();
+      int iterCount = 1;
+      if(tickEncoder - lastTickEncoder >10) {
+        iterCount = 1;
+      }
+      if(tickEncoder - lastTickEncoder <10 && !turnFlag) {
+        iterCount = (12- (tickEncoder - lastTickEncoder))/2;
+      } 
       if (state0 != lastState) {
         turnFlag = !turnFlag;
         thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-
-        if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < millis()) {
+        
+        if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < tickEncoder) {
           encDirection = thisdirection;
         }
         if (turnFlag) {
           if (encDirection == ENC_RIGHT ) {
-            if (encButtonChange)encCounter -= 1;
-            else encCounterFan -= 1;
+            if (encButtonChange)encCounter -= iterCount;
+            else encCounterFan -= iterCount;
           } else {
-            if (encButtonChange) encCounter += 1;
-            else encCounterFan += 1;
+            if (encButtonChange) encCounter += iterCount;
+            else encCounterFan += iterCount;
           }
         }
-        lastTickEncoder = millis();
+        lastTickEncoder = tickEncoder;
         lastState = state0;
         if (encCounter < 0)encCounter = 0;
         if (encCounter > 500)encCounter = 500;
@@ -108,20 +114,16 @@ class Thermofan {
     }
 
     static void attachFun() {
-      if (countzerocross >= (WARMTICK - warmcount) && warmcount > 0) {
-        //digitalWrite(9, HIGH);
-        statewarm = true;
-        //digitalWrite(13, HIGH);
+      if (countzerocross >= (WARMTICK - warmcount) && warmcount > 0) { 
+        statewarm = true; 
         countzerocross = 0;
       } else {
-        statewarm = false;
-        //digitalWrite(9, LOW);
-        //digitalWrite(13, LOW);
-      }      
+        statewarm = false;  
+      }
       countzerocross++;
-      if(oldstatewarm!= statewarm){
-         digitalWrite(9, statewarm?HIGH:LOW);
-         oldstatewarm = statewarm;
+      if (oldstatewarm != statewarm) {
+        digitalWrite(9, statewarm ? HIGH : LOW);
+        oldstatewarm = statewarm;
       }
     }
 
@@ -157,15 +159,15 @@ class Thermofan {
 
     // получение температуры с термопары фена
     void getTenTemperature() {
-      
+
       this->thermocoupleValue =  correction(abs(int(206.36 * this->getOversampled(THERMOCOUPLE_PIN) * (5.0 / 1023.0) - 13.263)));
       this->Input = this->thermocoupleValue;
     }
 
     // корректировка
-    int correction(int x){
-     // return  x-int(0.4266*x-11.4621);
-     return x -(0.2087*x-23.2);
+    int correction(int x) {
+      // return  x-int(0.4266*x-11.4621);
+      return x - (0.2087 * x - 23.2);
     }
 
     //чтение значения установленной температуры
@@ -227,19 +229,19 @@ class Thermofan {
     //вывод
     void echo () {
       this->echoDisplay(this->Input, 0);
-      
       this->echoDisplay(this->Setpoint, 1);
-     
-      this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7);
-    
-      //this->echoDisplay(this->hermeticContactState?ostiv:nagrev, 2, 0);
+      this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7); 
+      if(this->hermeticContactState != this->oldhermeticContactState){
+        this->echoDisplay(this->hermeticContactState ? ostiv : nagrev, 2, 0);
+        this->oldhermeticContactState = this->hermeticContactState;
+      }
       this->echoDisplay(warmcount, 0, 7);
-      //this->echoDisplay(this->Output, 0, 9);
+      this->echoDisplay(this->Output, 0, 9);
       //Serial.println(this->getOversampled(THERMOCOUPLE_PIN));
-    } 
+    }
 
     //сам вывод на дисплей или куда надо
-    void echoDisplay(int i) { 
+    void echoDisplay(int i) {
       u8x8.drawString(0, 0,  String(i).c_str());
       return;
     }
@@ -283,17 +285,16 @@ class Thermofan {
           this->warmingFan = false;
           //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
           this->warming();
-          this->echo();
-          mil = millis();
+          this->echo(); 
           //после вывода снова включаем нагрев
           this->warmingFan = true;
         } else {
-          this->echo();
-          mil = millis();
+          this->echo(); 
         }
+        mil = millis();
       }
       // Нагрев фена
-      this->warming(); 
+      this->warming();
       //скорость вращения фена
       if (this->error == 0) {
         if ( this->Input < 15 && this->Setpoint < 10) {
