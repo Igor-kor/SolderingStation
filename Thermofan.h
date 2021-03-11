@@ -54,7 +54,7 @@ class Thermofan {
   public:
     //Конструктор
     Thermofan() {
-      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 1, 0.08, 0.3, DIRECT);
+      this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.5, 0.2, 0.01, DIRECT);
       this->fanpid->SetOutputLimits(0, WARMTICK);
       pinMode(OPTRON_PIN, OUTPUT);
       pinMode(this->warmingLed, OUTPUT);
@@ -246,7 +246,7 @@ class Thermofan {
       }
       this->echoDisplay(warmcount, 0, 7);
       this->echoDisplay(this->Output, 0, 9);
-      //Serial.println(this->getOversampled(THERMOCOUPLE_PIN));
+      Serial.println(this->getOversampled(THERMOCOUPLE_PIN));
     }
 
     //сам вывод на дисплей или куда надо
@@ -294,8 +294,8 @@ class Thermofan {
           this->warmingFan = false;
           //чтобы он отключился нужно выполнить функцию нагрева, она уберет питание с пина
           //int tempwarm = warmcount;
-         // warmcount = 0;
-          this->warming();
+          // warmcount = 0;
+          // this->warming();
           this->echo();
           //после вывода снова включаем нагрев
           this->warmingFan = true;
@@ -307,13 +307,18 @@ class Thermofan {
       // Нагрев фена
       this->warming();
       //скорость вращения фена
-      if (this->error == 0) {
-        if ( this->Input < 15 && this->Setpoint < 10) {
+
+      if (this->error == 0 || this->hermeticContactState) {
+        if ( this->Input < 50) {
           this->speedfan = 0;
         } else {
           this->speedfan = encCounterFan;
         }
       }
+      if (this->hermeticContactState && this->Input > 50) {
+        this->speedfan = 255;
+      }
+
       analogWrite(SPEED_FAN_PIN, this->speedfan);
     }
 
