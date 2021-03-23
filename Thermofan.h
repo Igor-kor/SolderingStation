@@ -246,7 +246,9 @@ class Thermofan {
       }
       this->echoDisplay(warmcount, 0, 7);
       this->echoDisplay(this->Output, 0, 9);
-      Serial.println(this->getOversampled(THERMOCOUPLE_PIN));
+      Serial.println((String("*temperatura*:")+String((int)this->Input)).c_str());
+      Serial.println((String("*output*:")+String((int)this->Output)).c_str()); 
+      Serial.println((String("*set*:")+String((int)this->Setpoint)).c_str()); 
     }
 
     //сам вывод на дисплей или куда надо
