@@ -8,7 +8,7 @@ class Thermofan;
 class WarmingState: public State {
    public:
     WarmingState(Thermofan* context);
-    void loop();
+    virtual void loop();
 };
 
 #endif

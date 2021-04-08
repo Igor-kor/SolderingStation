@@ -2,21 +2,23 @@
 #include "State.h"
 #include "u8x8_font_ikor.h"
 
-U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
 
-uint32_t lastTickEncoder;
-bool encDirection = 0;
-bool encButtonChange = 0;
+extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
 
-volatile int encCounter = 0, encCounterFan = 100;
-volatile bool echoEncoder = true;
-volatile bool state0, lastState, turnFlag = false;
+extern uint32_t lastTickEncoder;
+extern bool encDirection;
+extern bool encButtonChange;
 
-uint32_t mil = 0; //текущие милисекунды для вывода на экран
-int countzerocross = 0;
-int warmcount = 10;
-bool statewarm = false;
-bool oldstatewarm = false;
+extern volatile int encCounter, encCounterFan;
+extern volatile bool echoEncoder;
+extern volatile bool state0, lastState, turnFlag;
+
+extern uint32_t mil; 
+extern int countzerocross;
+extern int warmcount;
+extern bool statewarm;
+extern bool oldstatewarm;
+
 
 Thermofan::Thermofan() { 
   this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.5, 0.2, 0.01, DIRECT);
@@ -32,8 +34,6 @@ Thermofan::Thermofan() {
   u8x8.setFont(u8x8_font_ikor);
   EEPROM.get(0, encCounter);
   EEPROM.get(2, encCounterFan);
-  attachInterrupt(1, this->attachFun, FALLING);
-  attachInterrupt(0, this->attachEncoder, CHANGE);
   this->speedfan = 200;
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
@@ -224,10 +224,9 @@ void  Thermofan::ReadPins() {
 
 void  Thermofan::loopth() {
   // Вывод значения todo: пока будет костыль
-  if ( (millis() - mil) > TIME_ECHO) {
+ 
     this->echo();
-  }
-  mil = millis();
+  
   this->ReadPins();
   this->state->loop();
   this->EndLoop();

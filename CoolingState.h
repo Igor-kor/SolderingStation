@@ -8,6 +8,6 @@ class Thermofan;
 class CoolingState: public State {
    public:
     CoolingState(Thermofan* context);
-    void loop();
+    virtual void loop();
 };
 #endif
