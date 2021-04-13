@@ -8,6 +8,7 @@ class State {
     Thermofan* context;
     // передается контекст, тоесть сам класс thermofan
     State(Thermofan* context);
+    ~State();
     virtual void loop();
 };
 

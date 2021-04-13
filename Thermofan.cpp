@@ -34,8 +34,8 @@ Thermofan::Thermofan() {
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
-  this->state = new State(this);
-  //this->loopth();
+  this->newstate = NULL;
+  this->state = new State(this); 
 }
 
 static void  Thermofan::attachEncoder() {
@@ -230,11 +230,17 @@ void  Thermofan::loopth() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::loopth()");
 #endif
+if( this->newstate!= NULL){
+   delete this->state;
+   this->state = this->newstate;
+   this->newstate = NULL;
+}
   this->echo();
   this->ReadPins();
   this->state->loop();
   this->EndLoop();
 }
+
 void  Thermofan::EndLoop() {
   analogWrite(SPEED_FAN_PIN, this->speedfan);
 }
@@ -243,5 +249,5 @@ void  Thermofan::SetState(State* state) {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::SetState");
 #endif
-  this->state = state;
+  this->newstate = state;
 }

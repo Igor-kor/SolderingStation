@@ -31,14 +31,16 @@ void CoolingState::loop() {
 #endif
   // если температура меньше 50 градусов то перейдем в состояние ожидания
   if (context->Input < 50) {
-    context->SetState(new WaitingState(context));
-    delete this;
+    context->SetState(new WaitingState(context)); 
   }
   // если нагрев включили то переходим в состояние нагрева
   if (!context->hermeticContactState) {
-    context->SetState(new WarmingState(context));
-    delete this;
+    context->SetState(new WarmingState(context)); 
   }
   warmcount = 0;
   context->speedfan = 255;
+}
+
+CoolingState::~CoolingState(){
+  delete this->StateName;
 }

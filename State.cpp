@@ -17,6 +17,9 @@ void State::loop() {
 #ifdef DEBAGSERIAL
   Serial.println("State::loop()");
 #endif
-  context->SetState(new WaitingState(context));
-  delete this;
+  context->SetState(new WaitingState(context)); 
+}
+
+State::~State(){
+  delete this->StateName;
 }

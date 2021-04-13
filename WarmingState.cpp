@@ -31,8 +31,7 @@ void WarmingState::loop() {
   // если установлена температура меньше 20 или термофен лежит на подставке/выключен тумблер то
   // переходим в состояние остывания
   if (context->Setpoint < 20 || context->hermeticContactState) {
-    context->SetState(new CoolingState(context));
-    delete this;
+    context->SetState(new CoolingState(context)); 
   }
   // Делаем расчет значения для пид
   context->fanpid->Compute();
@@ -40,4 +39,8 @@ void WarmingState::loop() {
   warmcount = context->Output;
   //скорость вращения фена
   context->speedfan = encCounterFan;
+}
+
+WarmingState::~WarmingState(){
+  delete this->StateName;
 }

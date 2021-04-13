@@ -8,6 +8,7 @@ class Thermofan;
 class WaitingState: public State {
   public:
     WaitingState(Thermofan* context);
+    ~WaitingState();
     virtual void loop();
 };
 
