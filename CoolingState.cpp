@@ -21,8 +21,7 @@ CoolingState::CoolingState(Thermofan* context) : State(context) {
 #ifdef DEBAGSERIAL
   Serial.println("CoolingState::CoolingState");
 #endif
-  this->StateName = new char[10] {'О', 'С', 'Т', 'Ы', 'В', 'А', 'Н', 'И', 'Е', '\0'};
-  context->echoDisplay(this->StateName, 2, 0);
+  context->echoDisplay("ОСТЫВАНИЕ ", 2, 0);
 }
 
 void CoolingState::loop() {
@@ -41,6 +40,5 @@ void CoolingState::loop() {
   context->speedfan = 255;
 }
 
-CoolingState::~CoolingState(){
-  delete this->StateName;
+CoolingState::~CoolingState(){ 
 }

@@ -21,8 +21,7 @@ WarmingState::WarmingState(Thermofan* context) : State(context) {
 #ifdef DEBAGSERIAL
   Serial.println("WarmingState::WarmingState");
 #endif
-  this->StateName = new char[10] {'Н', 'А', 'Г', 'Р', 'Е', 'В', ' ', ' ', ' ', '\0'};
-  context->echoDisplay(this->StateName, 2, 0);
+   context->echoDisplay("НАГРЕВ    ", 2, 0);
 }
 void WarmingState::loop() {
 #ifdef DEBAGSERIAL
@@ -41,6 +40,5 @@ void WarmingState::loop() {
   context->speedfan = encCounterFan;
 }
 
-WarmingState::~WarmingState(){
-  delete this->StateName;
+WarmingState::~WarmingState(){ 
 }

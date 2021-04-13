@@ -3,8 +3,7 @@
 class Thermofan;
 
 class State {
-  public:
-    char* StateName;
+  public: 
     Thermofan* context;
     // передается контекст, тоесть сам класс thermofan
     State(Thermofan* context);

@@ -21,8 +21,7 @@ WaitingState::WaitingState(Thermofan* context) : State(context) {
 #ifdef DEBAGSERIAL
   Serial.println("WaitingState::WaitingState");
 #endif
-  this->StateName = new char[10] {'О', 'Ж', 'И', 'Д', 'А', 'Н', 'И', 'Е', ' ', '\0'};
-  context->echoDisplay(this->StateName, 2, 0);
+  context->echoDisplay("ОЖИДАНИЕ ", 2, 0);
 }
 void WaitingState::loop() {
 #ifdef DEBAGSERIAL
@@ -40,6 +39,5 @@ void WaitingState::loop() {
   context->speedfan = 0;
 }
 
-WaitingState::~WaitingState(){
-  delete this->StateName;
+WaitingState::~WaitingState(){ 
 }

@@ -5,7 +5,7 @@ class State;
 class Thermofan;
 
 // в этом состоянии будет остывание
-class CoolingState: public State {
+class CoolingState: public State { 
   public:
     CoolingState(Thermofan* context);
     ~CoolingState();

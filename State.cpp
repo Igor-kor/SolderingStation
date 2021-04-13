@@ -8,9 +8,7 @@ State::State(Thermofan* context) {
 #ifdef DEBAGSERIAL
   Serial.println("State::State(Thermofan* context)");
 #endif
-  this->context = context;
-  this->StateName = new char[10] {'*', '*', '*', ' ', ' ', ' ', '*', '*', '*', '\0'};
-  //context->echoDisplay(this->StateName, 2, 0);
+  this->context = context; 
 }
 
 void State::loop() {
@@ -20,6 +18,5 @@ void State::loop() {
   context->SetState(new WaitingState(context)); 
 }
 
-State::~State(){
-  delete this->StateName;
+State::~State(){ 
 }

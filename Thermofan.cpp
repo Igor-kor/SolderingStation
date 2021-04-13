@@ -208,8 +208,8 @@ void  Thermofan::echoDisplay(char* i, int str) {
   return;
 }
 
-void  Thermofan::echoDisplay(char* i, int str, int x) {
-  u8x8.drawString(x, str, i);
+void  Thermofan::echoDisplay(String i, int str, int x) {
+  u8x8.drawString(x, str, i.c_str());
   return;
 }
 
