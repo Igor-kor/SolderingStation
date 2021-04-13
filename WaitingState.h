@@ -6,7 +6,7 @@ class Thermofan;
 
 // в этом состоянии будет ожидание
 class WaitingState: public State {
-   public:
+  public:
     WaitingState(Thermofan* context);
     virtual void loop();
 };

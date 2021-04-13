@@ -6,7 +6,7 @@ class Thermofan;
 
 // в этом состоянии будет остывание
 class CoolingState: public State {
-   public:
+  public:
     CoolingState(Thermofan* context);
     virtual void loop();
 };

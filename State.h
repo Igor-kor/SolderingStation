@@ -11,5 +11,4 @@ class State {
     virtual void loop();
 };
 
-
 #endif

@@ -2,45 +2,23 @@
 #define THERMOFAN_H
 
 #include <PID_v1.h>
-#include "ThermofanDef.h" 
+#include "ThermofanDef.h"
 #include <U8g2lib.h>
 #include <PID_v1.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <EEPROM.h>
 
-class State; 
-
-extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-
-extern uint32_t lastTickEncoder;
-extern bool encDirection;
-extern bool encButtonChange;
-
-extern volatile int encCounter, encCounterFan;
-extern volatile bool echoEncoder;
-extern volatile bool state0, lastState, turnFlag;
-
-extern uint32_t mil; 
-extern int countzerocross;
-extern int warmcount;
-extern bool statewarm;
-extern bool oldstatewarm;
-
-
-
+class State;
 
 //также нужно сделать определения подключения фена в разьем
 //при разогреве сверх ххх температуры отключить нагрев, сообщить о неисправности
 class Thermofan {
     // Состояние
     State* state;
-    public:
+  public:
     // Значение температуры нагрева
     int thermocoupleValue = 0;
-    // ОШИБКИ
-    // 1 - Перегрев фена выше TEMP_MAX_OFF
-    int error = 0;
     // Пин геркона
     const int hermeticContactPin = 10;
     // Значение геркона

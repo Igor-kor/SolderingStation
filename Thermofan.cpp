@@ -2,25 +2,23 @@
 #include "State.h"
 #include "u8x8_font_ikor.h"
 
-
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-
 extern uint32_t lastTickEncoder;
 extern bool encDirection;
 extern bool encButtonChange;
-
-extern volatile int encCounter, encCounterFan;
-extern volatile bool echoEncoder;
-extern volatile bool state0, lastState, turnFlag;
-
-extern uint32_t mil; 
+extern int encCounter, encCounterFan;
+extern bool echoEncoder;
+extern bool state0, lastState, turnFlag;
+extern uint32_t mil;
 extern int countzerocross;
 extern int warmcount;
 extern bool statewarm;
 extern bool oldstatewarm;
 
-
-Thermofan::Thermofan() { 
+Thermofan::Thermofan() {
+#ifdef DEBAGSERIAL
+  Serial.println("Thermofan::Thermofan()");
+#endif
   this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.5, 0.2, 0.01, DIRECT);
   this->fanpid->SetOutputLimits(0, WARMTICK);
   pinMode(OPTRON_PIN, OUTPUT);
@@ -29,20 +27,21 @@ Thermofan::Thermofan() {
   this->fanpid->SetMode(AUTOMATIC);
   // оптимально 80
   this->fanpid->SetSampleTime(1);
-  u8x8.begin();
-  u8x8.setPowerSave(0);
-  u8x8.setFont(u8x8_font_ikor);
+
   EEPROM.get(0, encCounter);
   EEPROM.get(2, encCounterFan);
   this->speedfan = 200;
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
-  this->loopth();
   this->state = new State(this);
+  //this->loopth();
 }
 
 static void  Thermofan::attachEncoder() {
+#ifdef DEBAGSERIAL
+  Serial.println("Thermofan::attachEncoder()");
+#endif
   state0 = digitalRead(ENC_A);
   int thisdirection = 0;
   int tickEncoder = millis();
@@ -79,6 +78,9 @@ static void  Thermofan::attachEncoder() {
 }
 
 static void  Thermofan::attachFun() {
+#ifdef DEBAGSERIAL
+  Serial.println("Thermofan::attachFun()");
+#endif
   if (countzerocross >= (WARMTICK - warmcount) && warmcount > 0) {
     statewarm = true;
     countzerocross = 0;
@@ -178,9 +180,11 @@ void  Thermofan::echo () {
   }
   this->echoDisplay(warmcount, 0, 7);
   this->echoDisplay(this->Output, 0, 9);
+#ifdef DEBAGSERIAL
   Serial.println((String("*temperatura*:") + String((int)this->Input)).c_str());
   Serial.println((String("*output*:") + String((int)this->Output)).c_str());
   Serial.println((String("*set*:") + String((int)this->Setpoint)).c_str());
+#endif
 }
 
 //сам вывод на дисплей или куда надо
@@ -223,10 +227,10 @@ void  Thermofan::ReadPins() {
 }
 
 void  Thermofan::loopth() {
-  // Вывод значения todo: пока будет костыль
- 
-    this->echo();
-  
+#ifdef DEBAGSERIAL
+  Serial.println("Thermofan::loopth()");
+#endif
+  this->echo();
   this->ReadPins();
   this->state->loop();
   this->EndLoop();
@@ -235,6 +239,9 @@ void  Thermofan::EndLoop() {
   analogWrite(SPEED_FAN_PIN, this->speedfan);
 }
 
-void  Thermofan::SetState(State* state){
+void  Thermofan::SetState(State* state) {
+#ifdef DEBAGSERIAL
+  Serial.println("Thermofan::SetState");
+#endif
   this->state = state;
 }
