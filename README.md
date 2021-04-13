@@ -1,4 +1,4 @@
-# Моя DIY паяльная станция (тестовый рабочий вариант)
+# Паяльный фен
 
  Основные компоненты:
 - Arduino uno
@@ -20,19 +20,13 @@
 - по настройке коэфициентов пид регулятора http://lazysmart.ru/osnovy-avtomatiki/nastrojka-pid-regulyatora/
 - дискретный регулятор мощности (теория, как в итоге должно работать) https://www.qrz.ru/schemes/contribute/digest/bp169.shtml
 
-Прототип
-![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/foto1.jpg)
-![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/foto2.jpg)
-
 В собраном виде
 ![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/foto3.jpg)
 ![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/foto4.jpg)
 
 Для правильной регулировки написал программу на C# показывающую график https://github.com/Igor-kor/ArduinoDiagramm
-- До регулировки
-![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/screenbefore.jpg)
-- После регулировки
-![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/screenafter.jpg)
+- Пример
+![скрин](https://github.com/Igor-kor/SolderingStantion/blob/master/img/screenshot-diagram.jpg)
 
 Схемы
 - Определение перехода через 0
