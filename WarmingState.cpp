@@ -6,9 +6,8 @@
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
 extern uint32_t lastTickEncoder;
-extern bool encDirection;
-extern bool encButtonChange;
-extern  int encCounter, encCounterFan;
+extern bool encDirection; 
+extern  int encCounter;
 extern  bool echoEncoder;
 extern  bool state0, lastState, turnFlag;
 extern uint32_t mil;
@@ -30,15 +29,13 @@ void WarmingState::loop() {
 #endif
   // если установлена температура меньше 20 или термофен лежит на подставке/выключен тумблер то
   // переходим в состояние остывания
-  if (context->Setpoint < 20 || context->hermeticContactState) {
+  if ( context->hermeticContactState) {
     context->SetState(new CoolingState(context));
   }
   // Делаем расчет значения для пид
   context->fanpid->Compute();
   //нагрев тена
-  warmcount = context->Output;
-  //скорость вращения фена
-  context->speedfan = encCounterFan;
+  warmcount = context->Output; 
 }
 
 WarmingState::~WarmingState() {
