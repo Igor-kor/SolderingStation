@@ -21,7 +21,8 @@ CoolingState::CoolingState(Thermofan* context) : State(context) {
 #ifdef DEBAGSERIAL
   Serial.println("CoolingState::CoolingState");
 #endif
-  context->echoDisplay("ОСТЫВАНИЕ ", 2, 0);
+  u8x8.clearLine(2);
+  context->echoDisplay("\x9e\xa1\xa2\xab\x92\x90\x9d\x98\x95", 2, 0);
 }
 
 void CoolingState::loop() {

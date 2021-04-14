@@ -21,7 +21,8 @@ WarmingState::WarmingState(Thermofan* context) : State(context) {
 #ifdef DEBAGSERIAL
   Serial.println("WarmingState::WarmingState");
 #endif
-   context->echoDisplay("НАГРЕВ    ", 2, 0);
+  u8x8.clearLine(2);
+  context->echoDisplay("\x9d\x90\x93\xa0\x95\x92", 2, 0);
 }
 void WarmingState::loop() {
 #ifdef DEBAGSERIAL
@@ -30,7 +31,7 @@ void WarmingState::loop() {
   // если установлена температура меньше 20 или термофен лежит на подставке/выключен тумблер то
   // переходим в состояние остывания
   if (context->Setpoint < 20 || context->hermeticContactState) {
-    context->SetState(new CoolingState(context)); 
+    context->SetState(new CoolingState(context));
   }
   // Делаем расчет значения для пид
   context->fanpid->Compute();
@@ -40,5 +41,5 @@ void WarmingState::loop() {
   context->speedfan = encCounterFan;
 }
 
-WarmingState::~WarmingState(){ 
+WarmingState::~WarmingState() {
 }
