@@ -23,8 +23,9 @@ void setup() {
 #ifdef DEBAGSERIAL
   Serial.println("Setup SolderingStantion.ino");
 #endif
-  u8x8.begin(); 
+  u8x8.begin();
   u8x8.setPowerSave(0);
+  //u8x8.setFont(u8g2_font_logisoso_tn);
   u8x8.setFont(u8x8_font_ikor);
   thermofan1 =  new Thermofan();
   attachInterrupt(1, Thermofan::attachFun, FALLING);
