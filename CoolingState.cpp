@@ -22,7 +22,6 @@ CoolingState::CoolingState(Thermofan* context) : State(context) {
 #endif
   u8x8.clearLine(2);
   context->echoDisplay("\x9e\xa1\xa2\xab\x92\x90\x9d\x98\x95", 2, 0);
-  oldspeedfan = context->speedfan;
 }
 
 void CoolingState::loop() {
@@ -31,14 +30,14 @@ void CoolingState::loop() {
 #endif
   // если температура меньше 50 градусов то перейдем в состояние ожидания
   if (context->Input < 50) {
-    context->speedfan = oldspeedfan;
+    context->speedfan = context->echospeedfan;
     echoEncoder = true;
     context->SetState(new WaitingState(context));
     return;
   }
   // если нагрев включили то переходим в состояние нагрева
   if (!context->hermeticContactState) {
-    context->speedfan = oldspeedfan;
+    context->speedfan = context->echospeedfan;
     echoEncoder = true;
     context->SetState(new WarmingState(context));
     return;

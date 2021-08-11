@@ -1,10 +1,8 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
-#define DEBAGSERIAL
+//#define DEBAGSERIAL
 #include "u8x8_font_ikor.h"
 #include "Thermofan.h"
-
-//todo: баг с сохранением скорости фена
 
 U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
 uint32_t lastTickEncoder;
@@ -26,7 +24,6 @@ void setup() {
 #endif
   u8x8.begin();
   u8x8.setPowerSave(0);
-  //u8x8.setFont(u8g2_font_logisoso_tn);
   u8x8.setFont(u8x8_font_ikor);
   thermofan1 =  new Thermofan();
   attachInterrupt(1, Thermofan::attachFun, FALLING);

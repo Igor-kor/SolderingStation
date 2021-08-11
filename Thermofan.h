@@ -31,7 +31,7 @@ class Thermofan {
     double Input , Setpoint, Output;
     // Оптимальные значения 0.5 0 0.7
     PID* fanpid;
-    int speedfan;
+    int speedfan, echospeedfan;
 
   public:
     Thermofan();

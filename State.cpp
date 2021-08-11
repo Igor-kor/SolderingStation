@@ -27,6 +27,7 @@ void State::loop() {
 #ifdef DEBAGSERIAL
   Serial.println("State::loop()");
 #endif
+  context->speedfan = context->echospeedfan;
   context->SetState(new WaitingState(context));
 }
 
@@ -35,12 +36,12 @@ void State::encoder() {
     context->Setpoint += encCounter;
   }
   else {
-    context->speedfan += encCounter;
+    context->echospeedfan += encCounter;
   }
   if (context->Setpoint < 10)context->Setpoint = 10;
   if (context->Setpoint > 500)context->Setpoint = 500;
-  if (context->speedfan < 0)context->speedfan = 0;
-  if (context->speedfan > 100)context->speedfan = 100;
+  if (context->echospeedfan < 0)context->echospeedfan = 0;
+  if (context->echospeedfan > 100)context->echospeedfan = 100;
 }
 
 State::~State() {

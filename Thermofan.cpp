@@ -27,7 +27,7 @@ Thermofan::Thermofan() {
   // оптимально 80
   this->fanpid->SetSampleTime(1);
   EEPROM.get(0, Setpoint);
-  EEPROM.get(8, speedfan);
+  EEPROM.get(8, echospeedfan);
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
@@ -137,7 +137,7 @@ void  Thermofan::saveButton() {
   if (!getOversampledDigital(7)) {
     // будет сохранятся установленные значения
     EEPROM.put(0, Setpoint);
-    EEPROM.put(8, speedfan);
+    EEPROM.put(8, echospeedfan);
   }
 }
 void  Thermofan::readEncoderButtonState() {
@@ -163,7 +163,8 @@ void  Thermofan::echo () {
   if (echoEncoder) {
     u8x8.clearLine(1);
     this->echoDisplay(this->Setpoint, 1);
-    this->echoDisplay(speedfan, 1, 7);
+    this->echoDisplay(echospeedfan, 1, 7);
+    this->echoDisplay(speedfan, 1, 10);
     echoEncoder = false;
   }
   this->echoDisplay(warmcount, 0, 7);
@@ -216,6 +217,8 @@ void  Thermofan::loopth() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::loopth()");
 #endif
+  // Делаем расчет значения для пид
+  fanpid->Compute();
   if ( this->newstate != NULL) {
     delete this->state;
     this->state = this->newstate;
