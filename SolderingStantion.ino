@@ -7,8 +7,7 @@
 U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
 uint32_t lastTickEncoder;
 bool encDirection = 0;
-bool encButtonChange = 0;
-int encCounter = 0, encCounterFan = 100;
+int encCounter = 0;
 bool echoEncoder = true;
 bool state0, lastState, turnFlag = false;
 uint32_t mil = 0; //текущие милисекунды для вывода на экран
@@ -23,7 +22,7 @@ void setup() {
 #ifdef DEBAGSERIAL
   Serial.println("Setup SolderingStantion.ino");
 #endif
-  u8x8.begin(); 
+  u8x8.begin();
   u8x8.setPowerSave(0);
   u8x8.setFont(u8x8_font_ikor);
   thermofan1 =  new Thermofan();
@@ -35,5 +34,11 @@ void setup() {
 }
 
 void loop() {
+  #ifdef DEBAGSERIAL
+  Serial.println("Loop SolderingStantion.ino");
+#endif 
   thermofan1->loopth();
+    #ifdef DEBAGSERIAL
+  Serial.println("End Loop SolderingStantion.ino");
+#endif
 }

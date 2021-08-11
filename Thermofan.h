@@ -24,13 +24,14 @@ class Thermofan {
     bool hermeticContactState = false;
     bool oldhermeticContactState = true;
     bool changeEncoderButton = true;
+    bool encButtonChange = 0;
     //включен ли нагрев фена
     bool warmingFan = true;
     // Для пид регулировки
     double Input , Setpoint, Output;
     // Оптимальные значения 0.5 0 0.7
     PID* fanpid;
-    int speedfan;
+    int speedfan, echospeedfan;
 
   public:
     Thermofan();
@@ -41,7 +42,6 @@ class Thermofan {
     bool getOversampledDigitalLow(int pin);
     void getTenTemperature();
     int correction(int x);
-    void readPotentiometr();
     void readhermeticContactState();
     void saveButton();
     void readEncoderButtonState();
@@ -50,7 +50,7 @@ class Thermofan {
     void echoDisplay(int i, int str);
     void echoDisplay(int i, int str, int x);
     void echoDisplay(char* i, int str);
-void  Thermofan::echoDisplay(String i, int str, int x);
+    void echoDisplay(String i, int str, int x);
     void ReadPins();
     void loopth();
     void EndLoop();
