@@ -229,7 +229,7 @@ void  Thermofan::loopth() {
 }
 
 void  Thermofan::EndLoop() {
-  analogWrite(SPEED_FAN_PIN, map(speedfan, 0, 100, 20, 255));
+  analogWrite(SPEED_FAN_PIN, map(speedfan, 0, 100, 0, 255));
   encCounter = 0;
 }
 

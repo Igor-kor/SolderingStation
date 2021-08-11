@@ -28,8 +28,8 @@ void WaitingState::loop() {
 #ifdef DEBAGSERIAL
   Serial.println("WaitingState::loop");
 #endif
-  // если температура больше 55 градусов то перейдем в состояние охлаждения
-  if (context->Input > 55) {
+  // если температура больше 60 градусов то перейдем в состояние охлаждения
+  if (context->Input > 60) {
     context->speedfan = oldspeedfan;
     context->SetState(new CoolingState(context));
       echoEncoder = true;
@@ -43,7 +43,6 @@ void WaitingState::loop() {
      return;
   }
   warmcount = 0;
-  // bug this
   if(context->speedfan > 0) {
      echoEncoder = true;
   }
