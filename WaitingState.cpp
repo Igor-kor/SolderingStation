@@ -39,7 +39,8 @@ void WaitingState::loop() {
     context->SetState(new WarmingState(context));
   }
   warmcount = 0;
-  context->speedfan = 0;
+  // bug this
+  //context->speedfan = 0;
 }
 
 WaitingState::~WaitingState() {

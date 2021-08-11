@@ -4,7 +4,7 @@
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
 extern uint32_t lastTickEncoder;
-extern bool encDirection; 
+extern bool encDirection;
 extern int encCounter;
 extern bool echoEncoder;
 extern bool state0, lastState, turnFlag;
@@ -33,10 +33,10 @@ Thermofan::Thermofan() {
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
   this->newstate = NULL;
-  this->state = new State(this); 
+  this->state = new State(this);
 }
 
-static void  Thermofan::attachEncoder() {
+void  Thermofan::attachEncoder() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::attachEncoder()");
 #endif
@@ -58,9 +58,9 @@ static void  Thermofan::attachEncoder() {
     }
     if (turnFlag) {
       if (encDirection == ENC_RIGHT ) {
-         encCounter -= iterCount;
+        encCounter -= iterCount;
       } else {
-        encCounter += iterCount; 
+        encCounter += iterCount;
       }
       echoEncoder = true;
     }
@@ -69,7 +69,7 @@ static void  Thermofan::attachEncoder() {
   }
 }
 
-static void  Thermofan::attachFun() {
+void  Thermofan::attachFun() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::attachFun()");
 #endif
@@ -160,8 +160,8 @@ void  Thermofan::echo () {
   if (this->Setpoint < 100) {
     this->echoDisplay(" ", 1, 2);
   }
-  if (echoEncoder) {
-    
+  if (true) {
+
     u8x8.clearLine(1);
     this->echoDisplay(this->Setpoint, 1);
     this->echoDisplay(speedfan, 1, 7);
@@ -217,11 +217,11 @@ void  Thermofan::loopth() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::loopth()");
 #endif
-if( this->newstate!= NULL){
-   delete this->state;
-   this->state = this->newstate;
-   this->newstate = NULL;
-}
+  if ( this->newstate != NULL) {
+    delete this->state;
+    this->state = this->newstate;
+    this->newstate == NULL;
+  }
   this->echo();
   this->ReadPins();
   this->state->loop();
@@ -238,5 +238,8 @@ void  Thermofan::SetState(State* state) {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::SetState");
 #endif
+  if ( this->newstate != NULL) {
+    delete this->newstate;
+  }
   this->newstate = state;
 }

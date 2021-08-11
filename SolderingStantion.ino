@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
-//#define DEBAGSERIAL
+#define DEBAGSERIAL
 #include "u8x8_font_ikor.h"
 #include "Thermofan.h"
 
@@ -37,5 +37,11 @@ void setup() {
 }
 
 void loop() {
+  #ifdef DEBAGSERIAL
+  Serial.println("Loop SolderingStantion.ino");
+#endif
   thermofan1->loopth();
+    #ifdef DEBAGSERIAL
+  Serial.println("End Loop SolderingStantion.ino");
+#endif
 }
