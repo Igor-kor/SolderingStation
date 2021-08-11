@@ -32,15 +32,22 @@ void WaitingState::loop() {
   if (context->Input > 55) {
     context->speedfan = oldspeedfan;
     context->SetState(new CoolingState(context));
+      echoEncoder = true;
+    return;
   }
   // если нагрев включили то переходим в состояние нагрева
   if (!context->hermeticContactState) {
     context->speedfan = oldspeedfan;
     context->SetState(new WarmingState(context));
+      echoEncoder = true;
+     return;
   }
   warmcount = 0;
   // bug this
-  //context->speedfan = 0;
+  if(context->speedfan > 0) {
+     echoEncoder = true;
+  }
+  context->speedfan = 0;
 }
 
 WaitingState::~WaitingState() {

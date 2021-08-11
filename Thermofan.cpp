@@ -27,13 +27,13 @@ Thermofan::Thermofan() {
   // оптимально 80
   this->fanpid->SetSampleTime(1);
   EEPROM.get(0, Setpoint);
-  EEPROM.get(4, speedfan);
-  this->speedfan = 200;
+  EEPROM.get(8, speedfan);
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
   this->newstate = NULL;
   this->state = new State(this);
+  encCounter = 0;
 }
 
 void  Thermofan::attachEncoder() {
@@ -137,7 +137,7 @@ void  Thermofan::saveButton() {
   if (!getOversampledDigital(7)) {
     // будет сохранятся установленные значения
     EEPROM.put(0, Setpoint);
-    EEPROM.put(4, speedfan);
+    EEPROM.put(8, speedfan);
   }
 }
 void  Thermofan::readEncoderButtonState() {
@@ -160,8 +160,7 @@ void  Thermofan::echo () {
   if (this->Setpoint < 100) {
     this->echoDisplay(" ", 1, 2);
   }
-  if (true) {
-
+  if (echoEncoder) {
     u8x8.clearLine(1);
     this->echoDisplay(this->Setpoint, 1);
     this->echoDisplay(speedfan, 1, 7);
@@ -220,13 +219,13 @@ void  Thermofan::loopth() {
   if ( this->newstate != NULL) {
     delete this->state;
     this->state = this->newstate;
-    this->newstate == NULL;
+    this->newstate = NULL;
   }
-  this->echo();
   this->ReadPins();
-  this->state->loop();
   this->state->encoder();
+  this->state->loop();
   this->EndLoop();
+  this->echo();
 }
 
 void  Thermofan::EndLoop() {
