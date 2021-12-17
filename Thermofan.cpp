@@ -3,13 +3,12 @@
 #include "u8x8_font_ikor.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern uint32_t lastTickEncoder;
+extern unsigned long lastTickEncoder;
 extern bool encDirection;
-extern bool encButtonChange;
-extern int encCounter, encCounterFan;
+extern int encCounter;
 extern bool echoEncoder;
 extern bool state0, lastState, turnFlag;
-extern uint32_t mil;
+//extern uint32_t mil;
 extern int countzerocross;
 extern int warmcount;
 extern bool statewarm;
@@ -27,24 +26,23 @@ Thermofan::Thermofan() {
   this->fanpid->SetMode(AUTOMATIC);
   // оптимально 80
   this->fanpid->SetSampleTime(1);
-
-  EEPROM.get(0, encCounter);
-  EEPROM.get(2, encCounterFan);
-  this->speedfan = 200;
+  EEPROM.get(0, Setpoint);
+  EEPROM.get(8, echospeedfan);
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
   this->newstate = NULL;
-  this->state = new State(this); 
+  this->state = new State(this);
+  encCounter = 0;
 }
 
-static void  Thermofan::attachEncoder() {
+void  Thermofan::attachEncoder() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::attachEncoder()");
 #endif
   state0 = digitalRead(ENC_A);
   int thisdirection = 0;
-  int tickEncoder = millis();
+  unsigned long tickEncoder = millis();
   int iterCount = 1;
   if (tickEncoder - lastTickEncoder > 12) {
     iterCount = 1;
@@ -60,24 +58,18 @@ static void  Thermofan::attachEncoder() {
     }
     if (turnFlag) {
       if (encDirection == ENC_RIGHT ) {
-        if (encButtonChange)encCounter -= iterCount;
-        else encCounterFan -= iterCount;
+        encCounter -= iterCount;
       } else {
-        if (encButtonChange) encCounter += iterCount;
-        else encCounterFan += iterCount;
+        encCounter += iterCount;
       }
       echoEncoder = true;
     }
     lastTickEncoder = tickEncoder;
     lastState = state0;
-    if (encCounter < 20)encCounter = 20;
-    if (encCounter > 500)encCounter = 500;
-    if (encCounterFan < 100)encCounterFan = 100;
-    if (encCounterFan > 255)encCounterFan = 255;
   }
 }
 
-static void  Thermofan::attachFun() {
+void  Thermofan::attachFun() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::attachFun()");
 #endif
@@ -87,7 +79,10 @@ static void  Thermofan::attachFun() {
   } else {
     statewarm = false;
   }
-  countzerocross++;
+  //если нагрева нет, то и считать не нужно
+  if(warmcount != 0){
+    countzerocross++;
+  }
   if (oldstatewarm != statewarm) {
     digitalWrite(9, statewarm ? HIGH : LOW);
     oldstatewarm = statewarm;
@@ -137,11 +132,6 @@ int  Thermofan::correction(int x) {
   return x - (0.2087 * x - 23.2);
 }
 
-//чтение значения установленной температуры
-void  Thermofan::readPotentiometr() {
-  this->Setpoint = encCounter;
-}
-
 void  Thermofan::readhermeticContactState() {
   this->hermeticContactState = !getOversampledDigital(this->hermeticContactPin);
 }
@@ -149,8 +139,8 @@ void  Thermofan::readhermeticContactState() {
 void  Thermofan::saveButton() {
   if (!getOversampledDigital(7)) {
     // будет сохранятся установленные значения
-    EEPROM.put(0, encCounter);
-    EEPROM.put(2, encCounterFan);
+    EEPROM.put(0, Setpoint);
+    EEPROM.put(8, echospeedfan);
   }
 }
 void  Thermofan::readEncoderButtonState() {
@@ -174,8 +164,10 @@ void  Thermofan::echo () {
     this->echoDisplay(" ", 1, 2);
   }
   if (echoEncoder) {
+    u8x8.clearLine(1);
     this->echoDisplay(this->Setpoint, 1);
-    this->echoDisplay(map(encCounterFan, 100, 255, 0, 100), 1, 7);
+    this->echoDisplay(echospeedfan, 1, 7);
+    this->echoDisplay(speedfan, 1, 10);
     echoEncoder = false;
   }
   this->echoDisplay(warmcount, 0, 7);
@@ -222,32 +214,37 @@ void  Thermofan::ReadPins() {
   this->saveButton();
   // Считываем с пина значение температуры
   this->getTenTemperature();
-  // Считыаем значение с потенциометра
-  this->readPotentiometr();
 }
 
 void  Thermofan::loopth() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::loopth()");
 #endif
-if( this->newstate!= NULL){
-   delete this->state;
-   this->state = this->newstate;
-   this->newstate = NULL;
-}
-  this->echo();
+  // Делаем расчет значения для пид
+  fanpid->Compute();
+  if ( this->newstate != NULL) {
+    delete this->state;
+    this->state = this->newstate;
+    this->newstate = NULL;
+  }
   this->ReadPins();
+  this->state->encoder();
   this->state->loop();
   this->EndLoop();
+  this->echo();
 }
 
 void  Thermofan::EndLoop() {
-  analogWrite(SPEED_FAN_PIN, this->speedfan);
+  analogWrite(SPEED_FAN_PIN, map(speedfan, 0, 100, 0, 255));
+  encCounter = 0;
 }
 
 void  Thermofan::SetState(State* state) {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::SetState");
 #endif
+  if ( this->newstate != NULL) {
+    delete this->newstate;
+  }
   this->newstate = state;
 }

@@ -9,6 +9,7 @@ class State {
     State(Thermofan* context);
     ~State();
     virtual void loop();
+    virtual void encoder();
 };
 
 #endif
