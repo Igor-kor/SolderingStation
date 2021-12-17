@@ -5,12 +5,12 @@
 #include "WaitingState.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern uint32_t lastTickEncoder;
+extern unsigned long lastTickEncoder;
 extern bool encDirection;
 extern  int encCounter;
 extern  bool echoEncoder;
 extern  bool state0, lastState, turnFlag;
-extern uint32_t mil;
+//extern uint32_t mil;
 extern int countzerocross;
 extern int warmcount;
 extern bool statewarm;

@@ -3,12 +3,12 @@
 #include "u8x8_font_ikor.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern uint32_t lastTickEncoder;
+extern unsigned long lastTickEncoder;
 extern bool encDirection;
 extern int encCounter;
 extern bool echoEncoder;
 extern bool state0, lastState, turnFlag;
-extern uint32_t mil;
+//extern uint32_t mil;
 extern int countzerocross;
 extern int warmcount;
 extern bool statewarm;
@@ -42,7 +42,7 @@ void  Thermofan::attachEncoder() {
 #endif
   state0 = digitalRead(ENC_A);
   int thisdirection = 0;
-  int tickEncoder = millis();
+  unsigned long tickEncoder = millis();
   int iterCount = 1;
   if (tickEncoder - lastTickEncoder > 12) {
     iterCount = 1;
