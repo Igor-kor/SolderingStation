@@ -79,7 +79,10 @@ void  Thermofan::attachFun() {
   } else {
     statewarm = false;
   }
-  countzerocross++;
+  //если нагрева нет, то и считать не нужно
+  if(warmcount != 0){
+    countzerocross++;
+  }
   if (oldstatewarm != statewarm) {
     digitalWrite(9, statewarm ? HIGH : LOW);
     oldstatewarm = statewarm;
