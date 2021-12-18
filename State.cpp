@@ -10,7 +10,6 @@ extern bool encDirection;
 extern  int encCounter, encCounterFan;
 extern  bool echoEncoder;
 extern  bool state0, lastState, turnFlag;
-//extern uint32_t mil;
 extern int countzerocross;
 extern int warmcount;
 extern bool statewarm;

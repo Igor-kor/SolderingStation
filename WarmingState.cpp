@@ -7,10 +7,9 @@
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
 extern unsigned long lastTickEncoder;
 extern bool encDirection;
-extern  int encCounter;
-extern  bool echoEncoder;
-extern  bool state0, lastState, turnFlag;
-//extern uint32_t mil;
+extern int encCounter;
+extern bool echoEncoder;
+extern bool state0, lastState, turnFlag;
 extern int countzerocross;
 extern int warmcount;
 extern bool statewarm;
@@ -21,7 +20,7 @@ WarmingState::WarmingState(Thermofan* context) : State(context) {
   Serial.println("WarmingState::WarmingState");
 #endif
   u8x8.clearLine(2);
-  context->echoDisplay("\x9d\x90\x93\xa0\x95\x92", 2, 0);
+  context->echoDisplay(S_WARMING, 2, 0);
   warmcount = context->Output;
 }
 void WarmingState::loop() {

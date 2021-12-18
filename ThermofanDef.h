@@ -58,6 +58,5 @@
 // Пин оптопары нагрева фена
 #define OPTRON_PIN 9
 #define SPEED_FAN_PIN 5
-//#define POTENTIOMETER_PIN A1
 
 #endif
