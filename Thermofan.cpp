@@ -1,6 +1,7 @@
 #include "Thermofan.h"
 #include "State.h"
 #include "u8x8_font_ikor.h"
+#include "EepromString.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
 extern unsigned long lastTickEncoder;
@@ -8,17 +9,18 @@ extern bool encDirection;
 extern int encCounter;
 extern bool echoEncoder;
 extern bool state0, lastState, turnFlag;
-//extern uint32_t mil;
 extern int countzerocross;
 extern int warmcount;
 extern bool statewarm;
 extern bool oldstatewarm;
+extern double KP,KI,KD;
 
 Thermofan::Thermofan() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::Thermofan()");
 #endif
-  this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, 0.5, 0.2, 0.01, DIRECT);
+  this->ReadEEPROM();
+  this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, KP, KI, KD, DIRECT);
   this->fanpid->SetOutputLimits(0, WARMTICK);
   pinMode(OPTRON_PIN, OUTPUT);
   pinMode(5, OUTPUT);
@@ -26,14 +28,33 @@ Thermofan::Thermofan() {
   this->fanpid->SetMode(AUTOMATIC);
   // оптимально 80
   this->fanpid->SetSampleTime(1);
-  EEPROM.get(0, Setpoint);
-  EEPROM.get(8, echospeedfan);
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
   this->newstate = NULL;
   this->state = new State(this);
   encCounter = 0;
+}
+
+void Thermofan::ReadEEPROM(){
+  EEPROM.get(250, Setpoint);
+  EEPROM.get(258, echospeedfan);
+  EEPROM.get(266, KP);
+  EEPROM.get(274, KI);
+  EEPROM.get(282, KD);
+}
+
+void Thermofan::ResetEEPROM(){
+  String *ver;
+  readStringFromEEPROM(0,ver);
+  if(!ver->equals(String(VERSION))){
+    writeStringToEEPROM(0,String(VERSION));
+    EEPROM.put(250, 200);
+    EEPROM.put(258, 100);
+    EEPROM.put(266, 0.5);
+    EEPROM.put(274, 0.2);
+    EEPROM.put(282, 0.01);
+  }
 }
 
 void  Thermofan::attachEncoder() {
@@ -139,8 +160,8 @@ void  Thermofan::readhermeticContactState() {
 void  Thermofan::saveButton() {
   if (!getOversampledDigital(7)) {
     // будет сохранятся установленные значения
-    EEPROM.put(0, Setpoint);
-    EEPROM.put(8, echospeedfan);
+    EEPROM.put(250, Setpoint);
+    EEPROM.put(258, echospeedfan);
   }
 }
 void  Thermofan::readEncoderButtonState() {

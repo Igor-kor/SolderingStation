@@ -16,24 +16,17 @@ extern int warmcount;
 extern bool statewarm;
 extern bool oldstatewarm;
 
-WaitingState::WaitingState(Thermofan* context) : State(context) {
+SettingState::SettingState(Thermofan* context) : State(context) {
 #ifdef DEBAGSERIAL
   Serial.println("WaitingState::WaitingState");
 #endif
   u8x8.clearLine(2);
   context->echoDisplay(S_WAITING, 2, 0);
 }
-void WaitingState::loop() {
+void SettingState::loop() {
 #ifdef DEBAGSERIAL
   Serial.println("WaitingState::loop");
 #endif
-  // если температура больше 60 градусов то перейдем в состояние охлаждения
-  if (context->Input > 60) {
-    context->speedfan = context->echospeedfan;
-    context->SetState(new CoolingState(context));
-    echoEncoder = true;
-    return;
-  }
   // если нагрев включили то переходим в состояние нагрева
   if (!context->hermeticContactState) {
     context->speedfan = context->echospeedfan;
@@ -45,8 +38,18 @@ void WaitingState::loop() {
   if (context->speedfan > 0) {
     echoEncoder = true;
   }
-  context->speedfan = 0;
+  context->speedfan = 100;
 }
 
-WaitingState::~WaitingState() {
+void SettingState::encoder() {
+  if (context->encButtonChange) {
+    context->Setpoint += encCounter;
+  }
+  else {
+    context->echospeedfan += encCounter;
+  }
+
+}
+
+SettingState::~SettingState() {
 }
