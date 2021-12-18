@@ -1,6 +1,8 @@
 #ifndef THERMOFANDEF_H
 #define THERMOFANDEF_H
 
+#define VERSION "1.4.3"
+
 //Максимальная температура на потенциометре
 #ifndef TEMP_MAX
 #define TEMP_MAX 600
@@ -58,6 +60,5 @@
 // Пин оптопары нагрева фена
 #define OPTRON_PIN 9
 #define SPEED_FAN_PIN 5
-//#define POTENTIOMETER_PIN A1
 
 #endif

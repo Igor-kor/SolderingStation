@@ -1,7 +1,11 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 //#define DEBAGSERIAL
+// Language and font
 #include "u8x8_font_ikor.h"
+#include "rus.h"
+//#include "eng.h"
+
 #include "Thermofan.h"
 
 U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
@@ -15,6 +19,8 @@ int countzerocross = 0;
 int warmcount = 10;
 bool statewarm = false;
 bool oldstatewarm = false;
+// PID
+double KP = 0.5, KI = 0.2, KD = 0.01;
 Thermofan* thermofan1;
 
 void setup() {

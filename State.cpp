@@ -3,6 +3,7 @@
 #include "CoolingState.h"
 #include "WarmingState.h"
 #include "WaitingState.h"
+#include "SettingState.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
 extern unsigned long lastTickEncoder;
@@ -10,7 +11,6 @@ extern bool encDirection;
 extern  int encCounter, encCounterFan;
 extern  bool echoEncoder;
 extern  bool state0, lastState, turnFlag;
-//extern uint32_t mil;
 extern int countzerocross;
 extern int warmcount;
 extern bool statewarm;
@@ -28,7 +28,13 @@ void State::loop() {
   Serial.println("State::loop()");
 #endif
   context->speedfan = context->echospeedfan;
-  context->SetState(new WaitingState(context));
+  // Если зажата кнопка сохранения то перейдем в режим настройки
+  if (!context->getOversampledDigital(7)) {
+    context->SetState(new SettingState(context));
+  }
+  else{
+    context->SetState(new WaitingState(context));
+  }
 }
 
 void State::encoder() {
