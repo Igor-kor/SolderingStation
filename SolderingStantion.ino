@@ -4,8 +4,8 @@
 
 // Language and font
 #include "u8x8_font_ikor.h"
-#include "lang/rus.h"
-//#include "lang/eng.h"
+#include "rus.h"
+//#include "eng.h"
 
 #include "Thermofan.h"
 
