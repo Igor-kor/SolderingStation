@@ -28,7 +28,13 @@ void State::loop() {
   Serial.println("State::loop()");
 #endif
   context->speedfan = context->echospeedfan;
-  context->SetState(new WaitingState(context));
+  // Если зажата кнопка сохранения то перейдем в режим настройки
+  if (!context->getOversampledDigital(7)) {
+    context->SetState(new SettingState(context));
+  }
+  else{
+    context->SetState(new WaitingState(context));
+  }
 }
 
 void State::encoder() {

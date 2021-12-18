@@ -10,7 +10,9 @@ class SettingState: public State {
     SettingState(Thermofan* context);
     ~SettingState();
     virtual void loop();
-    void encoder();
+    virtual void encoder();
+    int Ksave = 0;
+    bool oldButtonChange;
 };
 
 #endif

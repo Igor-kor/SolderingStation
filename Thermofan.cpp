@@ -19,6 +19,7 @@ Thermofan::Thermofan() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::Thermofan()");
 #endif
+  this->ResetEEPROM();
   this->ReadEEPROM();
   this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, KP, KI, KD, DIRECT);
   this->fanpid->SetOutputLimits(0, WARMTICK);
@@ -45,10 +46,11 @@ void Thermofan::ReadEEPROM(){
 }
 
 void Thermofan::ResetEEPROM(){
-  String *ver;
-  readStringFromEEPROM(0,ver);
+  String *ver = new String();
+  readStringFromEEPROM(0,ver,250);
   if(!ver->equals(String(VERSION))){
-    writeStringToEEPROM(0,String(VERSION));
+    String ver1 = String(VERSION);
+    writeStringToEEPROM(0,ver1);
     EEPROM.put(250, 200);
     EEPROM.put(258, 100);
     EEPROM.put(266, 0.5);
@@ -162,8 +164,12 @@ void  Thermofan::saveButton() {
     // будет сохранятся установленные значения
     EEPROM.put(250, Setpoint);
     EEPROM.put(258, echospeedfan);
+    EEPROM.put(266, KP);
+    EEPROM.put(274, KI);
+    EEPROM.put(282, KD);
   }
 }
+
 void  Thermofan::readEncoderButtonState() {
   if (!getOversampledDigitalLow(8)) {
     if (this->changeEncoderButton) {
