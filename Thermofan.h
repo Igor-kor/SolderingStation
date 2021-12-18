@@ -55,5 +55,7 @@ class Thermofan {
     void loopth();
     void EndLoop();
     void SetState(State* state);
+    void ReadEEPROM();
+    void ResetEEPROM();
 };
 #endif

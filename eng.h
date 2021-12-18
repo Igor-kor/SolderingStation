@@ -4,5 +4,6 @@
 #define S_WARMING "Warming"
 #define S_WAITING "Waiting"
 #define S_COOLING "Cooling"
+#define S_SETTING "Setting"
 
 #endif

@@ -3,6 +3,7 @@
 #include "CoolingState.h"
 #include "WarmingState.h"
 #include "WaitingState.h"
+#include "SettingState.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
 extern unsigned long lastTickEncoder;

@@ -1,6 +1,8 @@
 #ifndef THERMOFANDEF_H
 #define THERMOFANDEF_H
 
+#define VERSION "1.4.3"
+
 //Максимальная температура на потенциометре
 #ifndef TEMP_MAX
 #define TEMP_MAX 600
