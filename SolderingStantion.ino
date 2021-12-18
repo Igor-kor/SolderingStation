@@ -1,7 +1,12 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
 //#define DEBAGSERIAL
+
+// Language and font
 #include "u8x8_font_ikor.h"
+#include "lang/rus.h"
+//#include "lang/eng.h"
+
 #include "Thermofan.h"
 
 U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);

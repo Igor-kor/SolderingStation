@@ -4,7 +4,6 @@
 #include <PID_v1.h>
 #include "ThermofanDef.h"
 #include <U8g2lib.h>
-#include <PID_v1.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <EEPROM.h>

@@ -21,7 +21,7 @@ WaitingState::WaitingState(Thermofan* context) : State(context) {
   Serial.println("WaitingState::WaitingState");
 #endif
   u8x8.clearLine(2);
-  context->echoDisplay("\x9e\x96\x98\x94\x90\x9d\x98\x95", 2, 0);
+  context->echoDisplay(S_WAITING, 2, 0);
 }
 void WaitingState::loop() {
 #ifdef DEBAGSERIAL

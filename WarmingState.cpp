@@ -21,7 +21,7 @@ WarmingState::WarmingState(Thermofan* context) : State(context) {
   Serial.println("WarmingState::WarmingState");
 #endif
   u8x8.clearLine(2);
-  context->echoDisplay("\x9d\x90\x93\xa0\x95\x92", 2, 0);
+  context->echoDisplay(S_WARMING, 2, 0);
   warmcount = context->Output;
 }
 void WarmingState::loop() {
