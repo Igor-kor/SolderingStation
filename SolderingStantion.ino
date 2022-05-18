@@ -37,12 +37,12 @@ void setup() {
   attachInterrupt(1, Thermofan::attachCrossZero, FALLING);
   attachInterrupt(0, Thermofan::attachEncoder, CHANGE);
 
-  // инициализация Timer1
+  // инициализация Timer2
     cli(); // отключить глобальные прерывания
     TCCR2A = 0; // установить TCCR1A регистр в 0
     TCCR2B = 0;
 
-    // включить прерывание Timer1 overflow:
+    // включить прерывание Timer2 overflow:
     TIMSK2 = (1 << TOIE2);
     // Установить CS10 бит так, чтобы таймер работал при тактовой частоте:
     TCCR2B |= (1 << CS10);
