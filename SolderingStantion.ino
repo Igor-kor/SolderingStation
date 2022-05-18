@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <U8g2lib.h>
+
 //#define DEBAGSERIAL
+//#define DEBAGPIDSERIAL
 // Language and font
 #include "u8x8_font_ikor.h"
 #include "rus.h"
@@ -20,7 +22,7 @@ int warmcount = 10;
 bool statewarm = false;
 bool oldstatewarm = false;
 // PID
-double KP = 0.5, KI = 0.2, KD = 0.01;
+double KP = 7, KI = 5, KD = 0.1;
 Thermofan* thermofan1;
 
 void setup() {
@@ -32,11 +34,27 @@ void setup() {
   u8x8.setPowerSave(0);
   u8x8.setFont(u8x8_font_ikor);
   thermofan1 =  new Thermofan();
-  attachInterrupt(1, Thermofan::attachFun, FALLING);
+  attachInterrupt(1, Thermofan::attachCrossZero, FALLING);
   attachInterrupt(0, Thermofan::attachEncoder, CHANGE);
+
+  // инициализация Timer1
+    cli(); // отключить глобальные прерывания
+    TCCR2A = 0; // установить TCCR1A регистр в 0
+    TCCR2B = 0;
+
+    // включить прерывание Timer1 overflow:
+    TIMSK2 = (1 << TOIE2);
+    // Установить CS10 бит так, чтобы таймер работал при тактовой частоте:
+    TCCR2B |= (1 << CS10);
+    sei(); // включить глобальные прерывания
 #ifdef DEBAGSERIAL
   Serial.println("end Setup SolderingStantion.ino");
 #endif
+}
+
+ISR(TIMER2_OVF_vect)
+{
+   Thermofan::attachFun();
 }
 
 void loop() {

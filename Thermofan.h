@@ -36,6 +36,7 @@ class Thermofan {
   public:
     Thermofan();
     static void attachEncoder();
+    static void attachCrossZero();
     static void attachFun();
     unsigned long int getOversampled(int pin);
     bool getOversampledDigital(int pin);

@@ -1,6 +1,10 @@
 #ifndef EEPROMSTRING_H
 #define EEPROMSTRING_H
 
+/*
+ * https://roboticsbackend.com/arduino-write-string-in-eeprom/
+ */
+
 int writeStringToEEPROM(int addrOffset, const String &strToWrite)
 {
   byte len = strToWrite.length();
