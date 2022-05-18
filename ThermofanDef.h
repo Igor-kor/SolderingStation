@@ -1,7 +1,7 @@
 #ifndef THERMOFANDEF_H
 #define THERMOFANDEF_H
 
-#define VERSION "1.4.3"
+#define VERSION "1.4.4"
 
 //Максимальная температура на потенциометре
 #ifndef TEMP_MAX
@@ -23,8 +23,9 @@
 #define TIME_ECHO 100
 #endif
 
+// примерно 500 тиков совершает между переходом через 0
 #ifndef WARMTICK
-#define WARMTICK 25
+#define WARMTICK 500
 #endif
 
 // для энкодера
