@@ -28,7 +28,7 @@ Thermofan::Thermofan() {
   pinMode(this->hermeticContactPin, INPUT);
   this->fanpid->SetMode(AUTOMATIC);
   // оптимально 80
-  this->fanpid->SetSampleTime(1);
+  this->fanpid->SetSampleTime(10);
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
@@ -92,24 +92,32 @@ void  Thermofan::attachEncoder() {
   }
 }
 
+// сбрасываем счетчик таймера при переходе через 0, тем самым синхронизируем сеть с нашим таймером
+void Thermofan::attachCrossZero(){
+   countzerocross = 0;
+}
+
+// теперь это будет срабатывать по таймеру вместо перехода через ноль сделать просто счетчик милисекунд
 void  Thermofan::attachFun() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::attachFun()");
 #endif
-  if (countzerocross >= (WARMTICK - warmcount) && warmcount > 0) {
-    statewarm = true;
-    countzerocross = 0;
+  if (countzerocross == (WARMTICK - warmcount) && warmcount > 0) {
+    //if (countzerocross == warmcount) {
+    //statewarm = true;
+    digitalWrite(9,  HIGH );
   } else {
-    statewarm = false;
+    digitalWrite(9,  LOW);
+    //statewarm = false;
   }
   //если нагрева нет, то и считать не нужно
   if(warmcount != 0){
     countzerocross++;
   }
-  if (oldstatewarm != statewarm) {
-    digitalWrite(9, statewarm ? HIGH : LOW);
-    oldstatewarm = statewarm;
-  }
+//  if (oldstatewarm != statewarm) {
+//    digitalWrite(9, statewarm ? HIGH : LOW);
+//    oldstatewarm = statewarm;
+//  }
 }
 
 //функция оверсэмплинга
@@ -197,9 +205,9 @@ void  Thermofan::echo () {
     this->echoDisplay(speedfan, 1, 10);
     echoEncoder = false;
   }
-  this->echoDisplay(warmcount, 0, 7);
+  //this->echoDisplay(warmcount, 0, 7);
   this->echoDisplay(this->Output, 0, 9);
-#ifdef DEBAGSERIAL
+#ifdef DEBAGPIDSERIAL
   Serial.println((String("*temperatura*:") + String((int)this->Input)).c_str());
   Serial.println((String("*output*:") + String((int)this->Output)).c_str());
   Serial.println((String("*set*:") + String((int)this->Setpoint)).c_str());
