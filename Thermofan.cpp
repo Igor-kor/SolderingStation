@@ -28,7 +28,7 @@ Thermofan::Thermofan() {
   pinMode(this->hermeticContactPin, INPUT);
   this->fanpid->SetMode(AUTOMATIC);
   // оптимально 80
-  this->fanpid->SetSampleTime(10);
+  this->fanpid->SetSampleTime(100);
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
   this->echoDisplay("%", 1, 10);
