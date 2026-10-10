@@ -60,9 +60,6 @@ void Thermofan::ResetEEPROM(){
 }
 
 void  Thermofan::attachEncoder() {
-#ifdef DEBAGSERIAL
-  Serial.println("Thermofan::attachEncoder()");
-#endif
   state0 = digitalRead(ENC_A);
   int thisdirection = 0;
   unsigned long tickEncoder = millis();
@@ -99,25 +96,21 @@ void Thermofan::attachCrossZero(){
 
 // теперь это будет срабатывать по таймеру вместо перехода через ноль сделать просто счетчик милисекунд
 void  Thermofan::attachFun() {
-#ifdef DEBAGSERIAL
-  Serial.println("Thermofan::attachFun()");
+#if OPTRON_PIN != 9
+#error "Прямая работа с портом рассчитана на OPTRON_PIN 9 (PB1)"
 #endif
+  // Прямой доступ к порту (пин 9 = PB1): ISR вызывается ~62500 раз/с,
+  // digitalWrite здесь недопустимо медленный — проект перестаёт
+  // зависеть от ускоренного ядра
   if (countzerocross == (WARMTICK - warmcount) && warmcount > 0) {
-    //if (countzerocross == warmcount) {
-    //statewarm = true;
-    digitalWrite(9,  HIGH );
+    PORTB |= _BV(PB1);
   } else {
-    digitalWrite(9,  LOW);
-    //statewarm = false;
+    PORTB &= ~_BV(PB1);
   }
   //если нагрева нет, то и считать не нужно
   if(warmcount != 0){
     countzerocross++;
   }
-//  if (oldstatewarm != statewarm) {
-//    digitalWrite(9, statewarm ? HIGH : LOW);
-//    oldstatewarm = statewarm;
-//  }
 }
 
 //функция оверсэмплинга
