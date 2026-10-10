@@ -2,7 +2,7 @@
 #include "Thermofan.h"
 #include "CoolingState.h"
 #include "Display.h"
-#include "rus.h"
+#include "Lang.h"
 
 WarmingState::WarmingState(Thermofan& context) : State(context) {}
 

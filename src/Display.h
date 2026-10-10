@@ -2,13 +2,14 @@
 #define DISPLAY_H
 
 #include <Arduino.h>
+#include <avr/pgmspace.h>
 #include <U8g2lib.h>
 
 // OLED SSD1306 128x32, I2C, текстовый режим u8x8: 16 колонок x 4 строки
 class Display {
   public:
     void begin();
-    void showStateLabel(const char* label);            // строка 2
+    void showStateLabel(PGM_P label);                 // строка 2, строка во flash
     void clearPidLine();                               // строка 3
     void drawPid(const char* key, const char* value);  // строка 3
     void updateRow1(int setpoint, int fanTarget, int fanCurrent);

@@ -3,7 +3,7 @@
 #include "WarmingState.h"
 #include "Display.h"
 #include "SettingsStore.h"
-#include "rus.h"
+#include "Lang.h"
 
 SettingState::SettingState(Thermofan& context) : State(context) {}
 

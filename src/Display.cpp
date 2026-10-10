@@ -27,9 +27,13 @@ void Display::drawInt(int value, uint8_t row, uint8_t col) {
   u8x8.drawString(col, row, buf);
 }
 
-void Display::showStateLabel(const char* label) {
+void Display::showStateLabel(PGM_P label) {
   u8x8.clearLine(2);
-  drawText(label, 2, 0);
+  // строка лежит во flash — копируем в буфер для вывода
+  char buf[17];
+  strncpy_P(buf, label, sizeof(buf) - 1);
+  buf[sizeof(buf) - 1] = '\0';
+  drawText(buf, 2, 0);
 }
 
 void Display::clearPidLine() {

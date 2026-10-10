@@ -1,4 +1,7 @@
-#include <clib\u8g2.h>
+#ifndef U8X8_FONT_IKOR_H
+#define U8X8_FONT_IKOR_H
+
+#include <U8g2lib.h>
 
 /*
   Fontname: -Misc-Fixed-Medium-R-Normal--8-80-75-75-C-50-ISO10646-1
@@ -60,3 +63,5 @@ const uint8_t u8x8_font_ikor[1668] U8X8_FONT_SECTION("u8x8_font_ikor") =
   "\0\0\0\0x@x@x\0\0\0x@x@\370\0\0\0\10xP \0\0\0\0xP x"
   "\0\0\0\0xPP \0\0\0\0\0HX\60\0\0\0\0x\60H\60\0\0\0\0\0P(x"
   "\0\0\0";
+
+#endif

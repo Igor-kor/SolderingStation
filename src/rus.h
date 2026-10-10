@@ -2,13 +2,16 @@
 #define LANGRUS_H
 
 /*
-online converter https://onlineutf8tools.com/convert-utf8-to-hexadecimal
-replace 0x.. to \x..
-and delete \x0d for get 1 byte symbol (u8g2 printing space symbol befor 2 byte symbol)
+Подписи состояний — однобайтовая кодировка под шрифт u8x8_font_ikor
+(кириллица: UTF-8 -> hex, удалить байты 0xD0/0xD1; u8g2 печатал
+пробел перед двухбайтными символами).
+Конвертер: https://onlineutf8tools.com/convert-utf8-to-hexadecimal
+Строки хранятся во flash (PROGMEM), а не в ОЗУ.
 */
 
-#define S_WARMING "\x9d\x90\x93\xa0\x95\x92"
-#define S_WAITING "\x9e\x96\x98\x94\x90\x9d\x98\x95"
-#define S_COOLING "\x9e\xa1\xa2\xab\x92\x90\x9d\x98\x95"
-#define S_SETTING "\x9d\xb0\xa1\xa2\xa0\xbe\xb9\xba\xb0"
+#define S_WARMING PSTR("\x9d\x90\x93\xa0\x95\x92")
+#define S_WAITING PSTR("\x9e\x96\x98\x94\x90\x9d\x98\x95")
+#define S_COOLING PSTR("\x9e\xa1\xa2\xab\x92\x90\x9d\x98\x95")
+#define S_SETTING PSTR("\x9d\xb0\xa1\xa2\xa0\xbe\xb9\xba\xb0")
+
 #endif
