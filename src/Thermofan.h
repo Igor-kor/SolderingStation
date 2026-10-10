@@ -25,6 +25,7 @@ class Thermofan {
     bool oldhermeticContactState = true;
     bool changeEncoderButton = true;
     bool encButtonChange = 0;
+    bool saveButtonWasPressed = false;
     //включен ли нагрев фена
     bool warmingFan = true;
     // Для пид регулировки

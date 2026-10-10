@@ -73,7 +73,8 @@ void  Thermofan::attachEncoder() {
   if (state0 != lastState) {
     turnFlag = !turnFlag;
     thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-    if (encDirection != thisdirection && (lastTickEncoder + MILLIS_CHANGE_DIRECTION) < tickEncoder) {
+    // беззнаковая разность корректно работает и при переполнении millis()
+    if (encDirection != thisdirection && (tickEncoder - lastTickEncoder) > MILLIS_CHANGE_DIRECTION) {
       encDirection = thisdirection;
     }
     if (turnFlag) {
@@ -161,7 +162,9 @@ void  Thermofan::readhermeticContactState() {
 }
 
 void  Thermofan::saveButton() {
-  if (!getOversampledDigital(7)) {
+  bool pressed = !getOversampledDigital(7);
+  // пишем один раз по нажатию, а не в каждом цикле, пока кнопка зажата
+  if (pressed && !this->saveButtonWasPressed) {
     // будет сохранятся установленные значения
     EEPROM.put(250, Setpoint);
     EEPROM.put(258, echospeedfan);
@@ -169,6 +172,7 @@ void  Thermofan::saveButton() {
     EEPROM.put(274, KI);
     EEPROM.put(282, KD);
   }
+  this->saveButtonWasPressed = pressed;
 }
 
 void  Thermofan::readEncoderButtonState() {
