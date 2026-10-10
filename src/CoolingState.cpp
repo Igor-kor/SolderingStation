@@ -1,55 +1,34 @@
-#include "State.h"
-#include "Thermofan.h"
 #include "CoolingState.h"
-#include "WarmingState.h"
+#include "Thermofan.h"
 #include "WaitingState.h"
-#include "SettingState.h"
+#include "WarmingState.h"
+#include "Display.h"
+#include "rus.h"
 
-extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern volatile unsigned long lastTickEncoder;
-extern volatile bool encDirection;
-extern volatile int encCounter;
-extern volatile bool echoEncoder;
-extern volatile bool state0, lastState, turnFlag;
-extern volatile int countzerocross;
-extern volatile int warmcount;
-extern bool statewarm;
-extern bool oldstatewarm;
+CoolingState::CoolingState(Thermofan& context) : State(context) {}
 
-CoolingState::CoolingState(Thermofan* context) : State(context) {
-#ifdef DEBAGSERIAL
-  Serial.println("CoolingState::CoolingState");
-#endif
-  u8x8.clearLine(2);
-  context->echoDisplay("\x9e\xa1\xa2\xab\x92\x90\x9d\x98\x95", 2, 0);
+CoolingState& CoolingState::instance(Thermofan& context) {
+  static CoolingState state(context);
+  return state;
+}
+
+void CoolingState::entry() {
+  display.showStateLabel(S_COOLING);
 }
 
 void CoolingState::loop() {
-#ifdef DEBAGSERIAL
-  Serial.println(" CoolingState::loop()");
-#endif
   // если температура меньше 50 градусов то перейдем в состояние ожидания
-  if (context->Input < 50) {
-    context->speedfan = context->echospeedfan;
-    echoEncoder = true;
-    context->SetState(new WaitingState(context));
+  if (context.currentTemp() < TEMP_COOLING_TO_WAITING) {
+    context.setFanPercent(context.fanTarget());
+    context.setState(WaitingState::instance(context));
     return;
   }
-  // если нагрев включили то переходим в состояние нагрева
-  if (!context->hermeticContactState) {
-    context->speedfan = context->echospeedfan;
-    echoEncoder = true;
-    context->SetState(new WarmingState(context));
+  // если фен сняли с подставки то переходим в состояние нагрева
+  if (!context.onStand()) {
+    context.setFanPercent(context.fanTarget());
+    context.setState(WarmingState::instance(context));
     return;
   }
-  noInterrupts();
-  warmcount = 0;
-  interrupts();
-  if(context->speedfan != 100) {
-     echoEncoder = true;
-  }
-  context->speedfan = 100;
-}
-
-CoolingState::~CoolingState() {
+  context.setHeaterPower(0);
+  context.setFanPercent(100);
 }

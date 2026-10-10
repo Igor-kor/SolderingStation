@@ -2,63 +2,40 @@
 #define THERMOFAN_H
 
 #include <PID_v1.h>
-#include "ThermofanDef.h"
-#include "rus.h"
-#include <U8g2lib.h>
-#include <SPI.h>
-#include <Wire.h>
-#include <EEPROM.h>
+#include "Config.h"
+#include "SettingsStore.h"
 
 class State;
 
+// Координатор: ПИД, модули (диммер, вентилятор, термопара, ввод, дисплей,
+// настройки) и машина состояний
 class Thermofan {
-    // Состояние
-    State* state;
-    State* newstate;
   public:
-    // Значение температуры нагрева
-    int thermocoupleValue = 0;
-    // Пин геркона
-    const int hermeticContactPin = 10;
-    // Значение геркона
-    bool hermeticContactState = false;
-    bool oldhermeticContactState = true;
-    bool changeEncoderButton = true;
-    bool encButtonChange = 0;
-    bool saveButtonWasPressed = false;
-    //включен ли нагрев фена
-    bool warmingFan = true;
-    // Для пид регулировки
-    double Input , Setpoint, Output;
-    // Оптимальные значения 0.5 0 0.7
-    PID* fanpid;
-    int speedfan, echospeedfan;
+    void begin();   // загрузка настроек, выбор начального состояния
+    void tick();    // один проход главного цикла
 
-  public:
-    Thermofan();
-    static void attachEncoder();
-    static void attachCrossZero();
-    static void attachFun();
-    unsigned long int getOversampled(int pin);
-    bool getOversampledDigital(int pin);
-    bool getOversampledDigitalLow(int pin);
-    void getTenTemperature();
-    int correction(int x);
-    void readhermeticContactState();
-    void saveButton();
-    void readEncoderButtonState();
-    void echo();
-    void echoDisplay(int i);
-    void echoDisplay(int i, int str);
-    void echoDisplay(int i, int str, int x);
-    void echoDisplay(const char* i, int str);
-    void echoDisplay(const char* i, int str, int x);
-    void ReadPins();
-    void loopth();
-    void EndLoop();
-    void SetState(State* state);
+    // --- интерфейс для состояний ---
+    void setState(State& state);
+    int currentTemp() const { return (int)Input; }
+    int heaterPower() const { return (int)Output; }   // выход ПИД, 0..WARMTICK
+    void setHeaterPower(int ticks);
+    void setFanPercent(int percent);
+    int fanTarget() const;
+    void adjustSetpoint(int delta);
+    void adjustFanTarget(int delta);
+    int encoderDelta();
+    bool encoderTargetIsTemp() const;
+    bool onStand() const;
+    Settings& settings() { return store.settings; }
     void applyPidTunings();
-    void ReadEEPROM();
-    void ResetEEPROM();
+
+  private:
+    State* state = nullptr;
+    State* pendingState = nullptr;   // отложенная смена состояния
+    PID* pid = nullptr;
+    double Input = 0, Output = 0, Setpoint = 0;
+    int speedfan = 0;                // текущая скорость вентилятора, %
+    bool row1Dirty = true;           // перерисовать строку 1 дисплея
 };
+
 #endif

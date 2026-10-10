@@ -1,54 +1,34 @@
-#include "State.h"
+#include "WaitingState.h"
 #include "Thermofan.h"
 #include "CoolingState.h"
 #include "WarmingState.h"
-#include "WaitingState.h"
-#include "SettingState.h"
+#include "Display.h"
+#include "rus.h"
 
-extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern volatile unsigned long lastTickEncoder;
-extern volatile bool encDirection;
-extern volatile int encCounter;
-extern volatile bool echoEncoder;
-extern volatile bool state0, lastState, turnFlag;
-extern volatile int countzerocross;
-extern volatile int warmcount;
-extern bool statewarm;
-extern bool oldstatewarm;
+WaitingState::WaitingState(Thermofan& context) : State(context) {}
 
-WaitingState::WaitingState(Thermofan* context) : State(context) {
-#ifdef DEBAGSERIAL
-  Serial.println("WaitingState::WaitingState");
-#endif
-  u8x8.clearLine(2);
-  context->echoDisplay(S_WAITING, 2, 0);
+WaitingState& WaitingState::instance(Thermofan& context) {
+  static WaitingState state(context);
+  return state;
 }
+
+void WaitingState::entry() {
+  display.showStateLabel(S_WAITING);
+}
+
 void WaitingState::loop() {
-#ifdef DEBAGSERIAL
-  Serial.println("WaitingState::loop");
-#endif
   // если температура больше 60 градусов то перейдем в состояние охлаждения
-  if (context->Input > 60) {
-    context->speedfan = context->echospeedfan;
-    context->SetState(new CoolingState(context));
-    echoEncoder = true;
+  if (context.currentTemp() > TEMP_WAITING_TO_COOLING) {
+    context.setFanPercent(context.fanTarget());
+    context.setState(CoolingState::instance(context));
     return;
   }
-  // если нагрев включили то переходим в состояние нагрева
-  if (!context->hermeticContactState) {
-    context->speedfan = context->echospeedfan;
-    context->SetState(new WarmingState(context));
-    echoEncoder = true;
+  // если фен сняли с подставки то переходим в состояние нагрева
+  if (!context.onStand()) {
+    context.setFanPercent(context.fanTarget());
+    context.setState(WarmingState::instance(context));
     return;
   }
-  noInterrupts();
-  warmcount = 0;
-  interrupts();
-  if (context->speedfan > 0) {
-    echoEncoder = true;
-  }
-  context->speedfan = 0;
-}
-
-WaitingState::~WaitingState() {
+  context.setHeaterPower(0);
+  context.setFanPercent(0);
 }

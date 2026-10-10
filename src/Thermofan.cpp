@@ -1,304 +1,113 @@
 #include "Thermofan.h"
 #include "State.h"
-#include "u8x8_font_ikor.h"
-#include "EepromString.h"
+#include "WaitingState.h"
+#include "WarmingState.h"
+#include "CoolingState.h"
+#include "SettingState.h"
+#include "Dimmer.h"
+#include "Fan.h"
+#include "Thermocouple.h"
+#include "Input.h"
+#include "Display.h"
+#include "SettingsStore.h"
 
-extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern volatile unsigned long lastTickEncoder;
-extern volatile bool encDirection;
-extern volatile int encCounter;
-extern volatile bool echoEncoder;
-extern volatile bool state0, lastState, turnFlag;
-extern volatile int countzerocross;
-extern volatile int warmcount;
-extern bool statewarm;
-extern bool oldstatewarm;
-extern double KP,KI,KD;
-
-Thermofan::Thermofan() {
-#ifdef DEBAGSERIAL
-  Serial.println("Thermofan::Thermofan()");
-#endif
-  this->ResetEEPROM();
-  this->ReadEEPROM();
-  this->fanpid = new PID(&this->Input, &this->Output, &this->Setpoint, KP, KI, KD, DIRECT);
-  this->fanpid->SetOutputLimits(0, WARMTICK);
-  pinMode(OPTRON_PIN, OUTPUT);
-  pinMode(5, OUTPUT);
-  pinMode(this->hermeticContactPin, INPUT);
-  this->fanpid->SetMode(AUTOMATIC);
-  // оптимально 80
-  this->fanpid->SetSampleTime(10);
-  this->echoDisplay("C*", 0, 3);
-  this->echoDisplay("C*", 1, 3);
-  this->echoDisplay("%", 1, 13);
-  this->newstate = NULL;
-  this->state = new State(this);
-  encCounter = 0;
-}
-
-void Thermofan::ReadEEPROM(){
-  EEPROM.get(250, Setpoint);
-  EEPROM.get(258, echospeedfan);
-  EEPROM.get(266, KP);
-  EEPROM.get(274, KI);
-  EEPROM.get(282, KD);
-}
-
-void Thermofan::ResetEEPROM(){
-  String ver;
-  readStringFromEEPROM(0, &ver, 250);
-  if (ver != VERSION) {
-    writeStringToEEPROM(0, String(VERSION));
-    EEPROM.put(250, 200);
-    EEPROM.put(258, 100);
-    EEPROM.put(266, 0.5);
-    EEPROM.put(274, 0.2);
-    EEPROM.put(282, 0.01);
-  }
-}
-
-void  Thermofan::attachEncoder() {
-  state0 = digitalRead(ENC_A);
-  int thisdirection = 0;
-  unsigned long tickEncoder = millis();
-  int iterCount = 1;
-  if (tickEncoder - lastTickEncoder > 12) {
-    iterCount = 1;
-  }
-  if (tickEncoder - lastTickEncoder < 12 && !turnFlag) {
-    iterCount = (14 - (tickEncoder - lastTickEncoder)) / 2;
-  }
-  if (state0 != lastState) {
-    turnFlag = !turnFlag;
-    thisdirection = (digitalRead(ENC_B) != lastState) ? ENC_RIGHT : ENC_LEFT;
-    // беззнаковая разность корректно работает и при переполнении millis()
-    if (encDirection != thisdirection && (tickEncoder - lastTickEncoder) > MILLIS_CHANGE_DIRECTION) {
-      encDirection = thisdirection;
-    }
-    if (turnFlag) {
-      if (encDirection == ENC_RIGHT ) {
-        encCounter -= iterCount;
-      } else {
-        encCounter += iterCount;
-      }
-      echoEncoder = true;
-    }
-    lastTickEncoder = tickEncoder;
-    lastState = state0;
-  }
-}
-
-// сбрасываем счетчик таймера при переходе через 0, тем самым синхронизируем сеть с нашим таймером
-void Thermofan::attachCrossZero(){
-   countzerocross = 0;
-}
-
-// теперь это будет срабатывать по таймеру вместо перехода через ноль сделать просто счетчик милисекунд
-void  Thermofan::attachFun() {
-#if OPTRON_PIN != 9
-#error "Прямая работа с портом рассчитана на OPTRON_PIN 9 (PB1)"
-#endif
-  // Прямой доступ к порту (пин 9 = PB1): ISR вызывается ~62500 раз/с,
-  // digitalWrite здесь недопустимо медленный — проект перестаёт
-  // зависеть от ускоренного ядра
-  if (countzerocross == (WARMTICK - warmcount) && warmcount > 0) {
-    PORTB |= _BV(PB1);
+void Thermofan::begin() {
+  store.load();
+  Setpoint = store.settings.setpoint;
+  // стартовая скорость вентилятора — сохранённая уставка
+  speedfan = store.settings.fanSpeed;
+  pid = new PID(&Input, &Output, &Setpoint, store.settings.kp, store.settings.ki, store.settings.kd, DIRECT);
+  pid->SetOutputLimits(0, WARMTICK);
+  pid->SetMode(AUTOMATIC);
+  pid->SetSampleTime(10);
+  input.update();
+  // зажатая при включении кнопка сохранения — вход в режим настройки ПИД
+  if (input.saveHeld()) {
+    state = &SettingState::instance(*this);
   } else {
-    PORTB &= ~_BV(PB1);
+    state = &WaitingState::instance(*this);
   }
-  //если нагрева нет, то и считать не нужно
-  if(warmcount != 0){
-    countzerocross++;
-  }
+  state->entry();
 }
 
-//функция оверсэмплинга
-unsigned long int  Thermofan::getOversampled(int pin) {
-  unsigned long int result = 0;
-  for (byte z = 0; z < 64; z++) { //делаем 64 замера
-    result += analogRead(pin); //складываем всё вместе
+void Thermofan::tick() {
+  // отложенная смена состояния
+  if (pendingState != nullptr) {
+    state = pendingState;
+    pendingState = nullptr;
+    state->entry();
+    row1Dirty = true;
   }
-  //делаем побитовый сдвиг для полученного значения (64 это 2 в 6-ой степени, поэтому »6)
-  return result >> 6;
-}
-
-//функция оверсэмплинга для геркона, (не сильно много тут нужно)
-bool  Thermofan::getOversampledDigital(int pin) {
-  unsigned long int result = 0;
-  for (byte z = 0; z < 8; z++) { //делаем 8 замера
-    result += digitalRead(pin); //складываем всё вместе
+  input.update();
+  Input = thermocouple.readTemperature();
+  // сохранение настроек — по фронту нажатия кнопки
+  if (input.savePressedEdge()) {
+    store.save();
   }
-  //делаем побитовый сдвиг для полученного значения (8 это 2 в 3-ой степени, поэтому »3)
-  return (result >> 3) > 0;
-}
-
-//функция оверсэмплинга
-bool  Thermofan::getOversampledDigitalLow(int pin) {
-  unsigned long int result = 0;
-  for (byte z = 0; z < 8; z++) { //делаем 8 замера
-    result += !digitalRead(pin); //складываем всё вместе
+  // расчёт ПИД по свежему значению температуры
+  pid->Compute();
+  state->encoder();
+  state->loop();
+  fan.setPercent(speedfan);
+  // строка 1 обновляется при повороте энкодера и смене скорости
+  if (row1Dirty || input.consumeTurned()) {
+    display.updateRow1((int)Setpoint, store.settings.fanSpeed, speedfan);
+    row1Dirty = false;
   }
-  //делаем побитовый сдвиг для полученного значения (8 это 2 в 3-ой степени, поэтому »3)
-  return (result >> 3) > 0;
-}
-
-// получение температуры с термопары фена
-void  Thermofan::getTenTemperature() {
-
-  this->thermocoupleValue =  correction(abs(int(206.36 * this->getOversampled(THERMOCOUPLE_PIN) * (5.0 / 1023.0) - 13.263)));
-  this->Input = this->thermocoupleValue;
-}
-
-// корректировка
-int  Thermofan::correction(int x) {
-  // return  x-int(0.4266*x-11.4621);
-  return x - (0.2087 * x - 23.2);
-}
-
-void  Thermofan::readhermeticContactState() {
-  this->hermeticContactState = !getOversampledDigital(this->hermeticContactPin);
-}
-
-void  Thermofan::saveButton() {
-  bool pressed = !getOversampledDigital(7);
-  // пишем один раз по нажатию, а не в каждом цикле, пока кнопка зажата
-  if (pressed && !this->saveButtonWasPressed) {
-    // будет сохранятся установленные значения
-    EEPROM.put(250, Setpoint);
-    EEPROM.put(258, echospeedfan);
-    EEPROM.put(266, KP);
-    EEPROM.put(274, KI);
-    EEPROM.put(282, KD);
-  }
-  this->saveButtonWasPressed = pressed;
-}
-
-void  Thermofan::readEncoderButtonState() {
-  if (!getOversampledDigitalLow(8)) {
-    if (this->changeEncoderButton) {
-      encButtonChange = !encButtonChange;
-    }
-    this->changeEncoderButton = false;
-  } else {
-    this->changeEncoderButton = true;
-  }
-}
-
-//вывод
-void  Thermofan::echo () {
-  // строка 1 перерисовывается сразу при повороте энкодера
-  if (echoEncoder) {
-    u8x8.clearLine(1);
-    this->echoDisplay(this->Setpoint, 1);
-    this->echoDisplay(echospeedfan, 1, 7);
-    this->echoDisplay(speedfan, 1, 10);
-    // перерисовываем и метку: clearLine её стирает, а раньше значение
-    // speedfan рисовалось поверх «%» в 10-й колонке
-    this->echoDisplay("%", 1, 13);
-    echoEncoder = false;
-  }
-  // строки с текущими значениями — не чаще TIME_ECHO:
-  // постоянная перерисовка через I2C тормозит главный цикл
-  static unsigned long lastEcho = 0;
-  if (millis() - lastEcho < TIME_ECHO) return;
-  lastEcho = millis();
-  this->echoDisplay(this->Input, 0);
-  if (this->Input < 100) {
-    this->echoDisplay(" ", 0, 2);
-  }
-  if (this->Input < 10) {
-    this->echoDisplay(" ", 0, 1);
-  }
-  this->echoDisplay(this->Output, 0, 9);
-  if (this->Output < 100) {
-    this->echoDisplay(" ", 0, 11);
-  }
-  if (this->Output < 10) {
-    this->echoDisplay(" ", 0, 10);
-  }
-#ifdef DEBAGPIDSERIAL
-  Serial.print(F("*temperatura*:")); Serial.println((int)this->Input);
-  Serial.print(F("*output*:"));     Serial.println((int)this->Output);
-  Serial.print(F("*set*:"));        Serial.println((int)this->Setpoint);
+  display.update((int)Input, (int)Output);
+#ifdef DEBUG_PID_SERIAL
+  Serial.print(F("t=")); Serial.print((int)Input);
+  Serial.print(F(" out=")); Serial.print((int)Output);
+  Serial.print(F(" set=")); Serial.println((int)Setpoint);
 #endif
 }
 
-//сам вывод на дисплей или куда надо
-void  Thermofan::echoDisplay(int i) {
-  this->echoDisplay(i, 0, 0);
+void Thermofan::setState(State& newState) {
+  pendingState = &newState;
 }
 
-void  Thermofan::echoDisplay(int i, int str) {
-  this->echoDisplay(i, str, 0);
+void Thermofan::setHeaterPower(int ticks) {
+  dimmer.setPower(ticks);
 }
 
-void  Thermofan::echoDisplay(int i, int str, int x) {
-  // без String: в горячем пути он фрагментировал кучу (всего 2 КБ ОЗУ)
-  char buf[8];
-  itoa(i, buf, 10);
-  u8x8.drawString(x, str, buf);
+void Thermofan::setFanPercent(int percent) {
+  if (percent == speedfan) return;
+  speedfan = percent;
+  row1Dirty = true;   // значение на дисплее изменилось
 }
 
-void  Thermofan::echoDisplay(const char* i, int str) {
-  u8x8.drawString(0, str, i);
+int Thermofan::fanTarget() const {
+  return store.settings.fanSpeed;
 }
 
-void  Thermofan::echoDisplay(const char* i, int str, int x) {
-  u8x8.drawString(x, str, i);
+void Thermofan::adjustSetpoint(int delta) {
+  Setpoint += delta;
+  if (Setpoint < SETPOINT_MIN) Setpoint = SETPOINT_MIN;
+  if (Setpoint > SETPOINT_MAX) Setpoint = SETPOINT_MAX;
+  // держим сохраняемую уставку в соответствии с текущей
+  store.settings.setpoint = (int)Setpoint;
 }
 
-void  Thermofan::ReadPins() {
-  // Считыываем состояние геркона
-  this->readhermeticContactState();
-  // Считываем значение кнопки энкодера
-  this->readEncoderButtonState();
-  // Считываем значение кнопки сохранения
-  this->saveButton();
-  // Считываем с пина значение температуры
-  this->getTenTemperature();
+void Thermofan::adjustFanTarget(int delta) {
+  store.settings.fanSpeed += delta;
+  if (store.settings.fanSpeed < 0) store.settings.fanSpeed = 0;
+  if (store.settings.fanSpeed > 100) store.settings.fanSpeed = 100;
 }
 
-void  Thermofan::loopth() {
-#ifdef DEBAGSERIAL
-  Serial.println("Thermofan::loopth()");
-#endif
-  if ( this->newstate != NULL) {
-    delete this->state;
-    this->state = this->newstate;
-    this->newstate = NULL;
-  }
-  this->ReadPins();
-  // Расчёт ПИД — после чтения датчиков, иначе он работает
-  // по значению температуры из прошлого цикла
-  fanpid->Compute();
-  this->state->encoder();
-  this->state->loop();
-  this->EndLoop();
-  this->echo();
+int Thermofan::encoderDelta() {
+  return input.takeEncoderDelta();
 }
 
-void  Thermofan::EndLoop() {
-  analogWrite(SPEED_FAN_PIN, map(speedfan, 0, 100, 0, 255));
-  // encCounter пишется в ISR энкодера — сбрасываем атомарно
-  noInterrupts();
-  encCounter = 0;
-  interrupts();
+bool Thermofan::encoderTargetIsTemp() const {
+  return input.encoderToggle();
 }
 
-void  Thermofan::SetState(State* state) {
-#ifdef DEBAGSERIAL
-  Serial.println("Thermofan::SetState");
-#endif
-  if ( this->newstate != NULL) {
-    delete this->newstate;
-  }
-  this->newstate = state;
+bool Thermofan::onStand() const {
+  return input.reedClosed();
 }
 
-// Применение коэффициентов ПИД на лету: в конструктор PID они передаются
-// по значению, поэтому без SetTunings новые KP/KI/KD действовали бы
-// только после перезагрузки
-void  Thermofan::applyPidTunings() {
-  this->fanpid->SetTunings(KP, KI, KD);
+// Применение коэффициентов ПИД на лету: в конструктор PID они
+// передаются по значению
+void Thermofan::applyPidTunings() {
+  pid->SetTunings(store.settings.kp, store.settings.ki, store.settings.kd);
 }

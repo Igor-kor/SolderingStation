@@ -1,14 +1,15 @@
 #ifndef COOLINGSTATE_H
 #define COOLINGSTATE_H
 
-class State;
-class Thermofan;
+#include "State.h"
 
-// в этом состоянии будет остывание
-class CoolingState: public State {
+// Остывание: фен на подставке, нагрев выключен, вентилятор на 100%
+class CoolingState : public State {
   public:
-    CoolingState(Thermofan* context);
-    ~CoolingState();
-    virtual void loop();
+    explicit CoolingState(Thermofan& context);
+    static CoolingState& instance(Thermofan& context);
+    void entry() override;
+    void loop() override;
 };
+
 #endif

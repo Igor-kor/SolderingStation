@@ -1,18 +1,20 @@
 #ifndef SETTINGSTATE_H
 #define SETTINGSTATE_H
 
-class State;
-class Thermofan;
+#include "State.h"
 
-// Настройки
-class SettingState: public State {
+// Настройка коэффициентов ПИД (вход: зажать кнопку сохранения при включении)
+class SettingState : public State {
   public:
-    SettingState(Thermofan* context);
-    ~SettingState();
-    virtual void loop();
-    virtual void encoder();
-    int Ksave = 0;
-    bool oldButtonChange;
+    explicit SettingState(Thermofan& context);
+    static SettingState& instance(Thermofan& context);
+    void entry() override;
+    void loop() override;
+    void encoder() override;
+
+  private:
+    bool oldButtonChange = false;  // прошлое состояние кнопки энкодера
+    uint8_t ksel = 0;              // 0 — P, 1 — I, 2 — D
 };
 
 #endif

@@ -1,15 +1,15 @@
-#ifndef WARNINGSTATE_H
-#define WARNINGSTATE_H
+#ifndef WARMINGSTATE_H
+#define WARMINGSTATE_H
 
-class State;
-class Thermofan;
+#include "State.h"
 
-// в этом состоянии будет нагрев
-class WarmingState: public State {
+// Нагрев: фен в работе, мощность нагревателя задаёт ПИД
+class WarmingState : public State {
   public:
-    WarmingState(Thermofan* context);
-    ~WarmingState();
-    virtual void loop();
+    explicit WarmingState(Thermofan& context);
+    static WarmingState& instance(Thermofan& context);
+    void entry() override;
+    void loop() override;
 };
 
 #endif

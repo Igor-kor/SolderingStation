@@ -1,15 +1,15 @@
 #ifndef WAITINGSTATE_H
 #define WAITINGSTATE_H
 
-class State;
-class Thermofan;
+#include "State.h"
 
-// в этом состоянии будет ожидание
-class WaitingState: public State {
+// Ожидание: фен на подставке, нагрев выключен, вентилятор остановлен
+class WaitingState : public State {
   public:
-    WaitingState(Thermofan* context);
-    ~WaitingState();
-    virtual void loop();
+    explicit WaitingState(Thermofan& context);
+    static WaitingState& instance(Thermofan& context);
+    void entry() override;
+    void loop() override;
 };
 
 #endif

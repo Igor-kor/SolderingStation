@@ -1,86 +1,61 @@
-#include "State.h"
-#include "Thermofan.h"
-#include "CoolingState.h"
-#include "WarmingState.h"
-#include "WaitingState.h"
 #include "SettingState.h"
+#include "Thermofan.h"
+#include "WarmingState.h"
+#include "Display.h"
+#include "SettingsStore.h"
+#include "rus.h"
 
-extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern volatile unsigned long lastTickEncoder;
-extern volatile bool encDirection;
-extern volatile int encCounter;
-extern volatile bool echoEncoder;
-extern volatile bool state0, lastState, turnFlag;
-extern volatile int countzerocross;
-extern volatile int warmcount;
-extern bool statewarm;
-extern bool oldstatewarm;
-extern double KP,KI,KD;
+SettingState::SettingState(Thermofan& context) : State(context) {}
 
-SettingState::SettingState(Thermofan* context) : State(context) {
-#ifdef DEBAGSERIAL
-  Serial.println("WaitingState::WaitingState");
-#endif
-  u8x8.clearLine(2);
-  context->echoDisplay(S_SETTING, 2, 0);
-  this->oldButtonChange = context->encButtonChange;
+SettingState& SettingState::instance(Thermofan& context) {
+  static SettingState state(context);
+  return state;
 }
+
+void SettingState::entry() {
+  display.showStateLabel(S_SETTING);
+  display.clearPidLine();
+  oldButtonChange = context.encoderTargetIsTemp();
+}
+
 void SettingState::loop() {
-#ifdef DEBAGSERIAL
-  Serial.println("SettingState::loop");
-#endif
-  // если нагрев включили то переходим в состояние нагрева
-  if (!context->hermeticContactState) {
-    context->speedfan = context->echospeedfan;
-    context->SetState(new WarmingState(context));
-    echoEncoder = true;
+  // фен сняли с подставки — выходим из настроек в нагрев
+  if (!context.onStand()) {
+    context.setFanPercent(context.fanTarget());
+    context.setState(WarmingState::instance(context));
     return;
   }
-  noInterrupts();
-  warmcount = 0;
-  interrupts();
-  if (context->speedfan > 0) {
-    echoEncoder = true;
-  }
-  context->speedfan = 100;
+  context.setHeaterPower(0);
+  context.setFanPercent(100);
 }
 
 void SettingState::encoder() {
-  // 16-битный encCounter пишется в ISR энкодера — читаем атомарно
-  noInterrupts();
-  int delta = encCounter;
-  interrupts();
-  if (context->encButtonChange != this->oldButtonChange) {
-    this->oldButtonChange = context->encButtonChange;
-    this->Ksave++;
-    if(this->Ksave>2)
-      this->Ksave=0;
+  int delta = context.encoderDelta();
+  // кнопка энкодера перебирает P -> I -> D
+  bool buttonChange = context.encoderTargetIsTemp();
+  if (buttonChange != oldButtonChange) {
+    oldButtonChange = buttonChange;
+    ksel = (ksel + 1) % 3;
   }
-   u8x8.clearLine(3);
-  char kbuf[12];
-  switch(this->Ksave){
+  Settings& s = context.settings();
+  char buf[12];
+  switch (ksel) {
     case 0:
-        KP += delta/100.0;
-        dtostrf(KP, 0, 3, kbuf);
-        context->echoDisplay("P", 3, 7);
-        context->echoDisplay(kbuf, 3, 0);
+      s.kp += delta / 100.0;
+      dtostrf(s.kp, 0, 3, buf);
+      display.drawPid("P", buf);
       break;
     case 1:
-        KI += delta/100.0;
-        dtostrf(KI, 0, 3, kbuf);
-        context->echoDisplay("I", 3, 7);
-        context->echoDisplay(kbuf, 3, 0);
+      s.ki += delta / 100.0;
+      dtostrf(s.ki, 0, 3, buf);
+      display.drawPid("I", buf);
       break;
     case 2:
-        KD += delta/100.0;
-        dtostrf(KD, 0, 3, kbuf);
-        context->echoDisplay("D", 3, 7);
-        context->echoDisplay(kbuf, 3, 0);
+      s.kd += delta / 100.0;
+      dtostrf(s.kd, 0, 3, buf);
+      display.drawPid("D", buf);
       break;
   }
   // применяем новые коэффициенты сразу, а не после перезагрузки
-  context->applyPidTunings();
-}
-
-SettingState::~SettingState() {
+  context.applyPidTunings();
 }
