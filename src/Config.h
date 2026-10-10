@@ -45,6 +45,10 @@
 #define SETPOINT_MIN 10
 #define SETPOINT_MAX 500
 
+// ---------- Аварийная защита ----------
+#define TEMP_OVERHEAT_OFF 600     // перегрев: нагрев выключить, вентилятор на 100%
+#define TEMP_OVERHEAT_RESUME 80   // остыли ниже — вернуться к работе
+
 // ---------- Энкодер ----------
 #define ENC_LEFT 1
 #define ENC_RIGHT 0

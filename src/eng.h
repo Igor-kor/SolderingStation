@@ -6,5 +6,6 @@
 #define S_WAITING PSTR("Waiting")
 #define S_COOLING PSTR("Cooling")
 #define S_SETTING PSTR("Setting")
+#define S_OVERHEAT PSTR("Overheat")
 
 #endif

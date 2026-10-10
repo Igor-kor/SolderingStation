@@ -4,6 +4,7 @@
 #include "WarmingState.h"
 #include "CoolingState.h"
 #include "SettingState.h"
+#include "OverheatState.h"
 #include "Dimmer.h"
 #include "Fan.h"
 #include "Thermocouple.h"
@@ -48,6 +49,11 @@ void Thermofan::tick() {
   pid->Compute();
   state->encoder();
   state->loop();
+  // Аварийная защита от перегрева: приоритетнее любого состояния
+  if (Input >= TEMP_OVERHEAT_OFF && state != &OverheatState::instance(*this)) {
+    setHeaterPower(0);
+    setState(OverheatState::instance(*this));
+  }
   fan.setPercent(speedfan);
   // строка 1 обновляется при повороте энкодера и смене скорости
   if (row1Dirty || input.consumeTurned()) {
