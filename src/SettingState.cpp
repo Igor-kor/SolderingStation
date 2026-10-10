@@ -57,21 +57,25 @@ void SettingState::encoder() {
       this->Ksave=0;
   }
    u8x8.clearLine(3);
+  char kbuf[12];
   switch(this->Ksave){
     case 0:
         KP += delta/100.0;
-        context->echoDisplay(String("P"), 3, 7);
-        context->echoDisplay(String(KP,3), 3, 0);
+        dtostrf(KP, 0, 3, kbuf);
+        context->echoDisplay("P", 3, 7);
+        context->echoDisplay(kbuf, 3, 0);
       break;
     case 1:
         KI += delta/100.0;
-        context->echoDisplay(String("I"), 3, 7);
-        context->echoDisplay(String(KI,3), 3, 0);
+        dtostrf(KI, 0, 3, kbuf);
+        context->echoDisplay("I", 3, 7);
+        context->echoDisplay(kbuf, 3, 0);
       break;
     case 2:
         KD += delta/100.0;
-        context->echoDisplay(String("D"), 3, 7);
-        context->echoDisplay(String(KD,3), 3, 0);
+        dtostrf(KD, 0, 3, kbuf);
+        context->echoDisplay("D", 3, 7);
+        context->echoDisplay(kbuf, 3, 0);
       break;
   }
   // применяем новые коэффициенты сразу, а не после перезагрузки

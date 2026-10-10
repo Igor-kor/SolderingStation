@@ -51,8 +51,8 @@ class Thermofan {
     void echoDisplay(int i);
     void echoDisplay(int i, int str);
     void echoDisplay(int i, int str, int x);
-    void echoDisplay(char* i, int str);
-    void echoDisplay(String i, int str, int x);
+    void echoDisplay(const char* i, int str);
+    void echoDisplay(const char* i, int str, int x);
     void ReadPins();
     void loopth();
     void EndLoop();

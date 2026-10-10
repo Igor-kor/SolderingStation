@@ -31,7 +31,7 @@ Thermofan::Thermofan() {
   this->fanpid->SetSampleTime(10);
   this->echoDisplay("C*", 0, 3);
   this->echoDisplay("C*", 1, 3);
-  this->echoDisplay("%", 1, 10);
+  this->echoDisplay("%", 1, 13);
   this->newstate = NULL;
   this->state = new State(this);
   encCounter = 0;
@@ -46,11 +46,10 @@ void Thermofan::ReadEEPROM(){
 }
 
 void Thermofan::ResetEEPROM(){
-  String *ver = new String();
-  readStringFromEEPROM(0,ver,250);
-  if(!ver->equals(String(VERSION))){
-    String ver1 = String(VERSION);
-    writeStringToEEPROM(0,ver1);
+  String ver;
+  readStringFromEEPROM(0, &ver, 250);
+  if (ver != VERSION) {
+    writeStringToEEPROM(0, String(VERSION));
     EEPROM.put(250, 200);
     EEPROM.put(258, 100);
     EEPROM.put(266, 0.5);
@@ -188,53 +187,65 @@ void  Thermofan::readEncoderButtonState() {
 
 //вывод
 void  Thermofan::echo () {
-  this->echoDisplay(this->Input, 0);
-  if (this->Input < 100) {
-    this->echoDisplay(" ", 0, 2);
-  }
-  if (this->Setpoint < 100) {
-    this->echoDisplay(" ", 1, 2);
-  }
+  // строка 1 перерисовывается сразу при повороте энкодера
   if (echoEncoder) {
     u8x8.clearLine(1);
     this->echoDisplay(this->Setpoint, 1);
     this->echoDisplay(echospeedfan, 1, 7);
     this->echoDisplay(speedfan, 1, 10);
+    // перерисовываем и метку: clearLine её стирает, а раньше значение
+    // speedfan рисовалось поверх «%» в 10-й колонке
+    this->echoDisplay("%", 1, 13);
     echoEncoder = false;
   }
-  //this->echoDisplay(warmcount, 0, 7);
+  // строки с текущими значениями — не чаще TIME_ECHO:
+  // постоянная перерисовка через I2C тормозит главный цикл
+  static unsigned long lastEcho = 0;
+  if (millis() - lastEcho < TIME_ECHO) return;
+  lastEcho = millis();
+  this->echoDisplay(this->Input, 0);
+  if (this->Input < 100) {
+    this->echoDisplay(" ", 0, 2);
+  }
+  if (this->Input < 10) {
+    this->echoDisplay(" ", 0, 1);
+  }
   this->echoDisplay(this->Output, 0, 9);
+  if (this->Output < 100) {
+    this->echoDisplay(" ", 0, 11);
+  }
+  if (this->Output < 10) {
+    this->echoDisplay(" ", 0, 10);
+  }
 #ifdef DEBAGPIDSERIAL
-  Serial.println((String("*temperatura*:") + String((int)this->Input)).c_str());
-  Serial.println((String("*output*:") + String((int)this->Output)).c_str());
-  Serial.println((String("*set*:") + String((int)this->Setpoint)).c_str());
+  Serial.print(F("*temperatura*:")); Serial.println((int)this->Input);
+  Serial.print(F("*output*:"));     Serial.println((int)this->Output);
+  Serial.print(F("*set*:"));        Serial.println((int)this->Setpoint);
 #endif
 }
 
 //сам вывод на дисплей или куда надо
 void  Thermofan::echoDisplay(int i) {
-  u8x8.drawString(0, 0,  String(i).c_str());
-  return;
+  this->echoDisplay(i, 0, 0);
 }
 
 void  Thermofan::echoDisplay(int i, int str) {
-  u8x8.drawString(0, str,  String(i).c_str());
-  return;
+  this->echoDisplay(i, str, 0);
 }
 
 void  Thermofan::echoDisplay(int i, int str, int x) {
-  u8x8.drawString(x, str, String(i).c_str());
-  return;
+  // без String: в горячем пути он фрагментировал кучу (всего 2 КБ ОЗУ)
+  char buf[8];
+  itoa(i, buf, 10);
+  u8x8.drawString(x, str, buf);
 }
 
-void  Thermofan::echoDisplay(char* i, int str) {
+void  Thermofan::echoDisplay(const char* i, int str) {
   u8x8.drawString(0, str, i);
-  return;
 }
 
-void  Thermofan::echoDisplay(String i, int str, int x) {
-  u8x8.drawString(x, str, i.c_str());
-  return;
+void  Thermofan::echoDisplay(const char* i, int str, int x) {
+  u8x8.drawString(x, str, i);
 }
 
 void  Thermofan::ReadPins() {
