@@ -248,14 +248,15 @@ void  Thermofan::loopth() {
 #ifdef DEBAGSERIAL
   Serial.println("Thermofan::loopth()");
 #endif
-  // Делаем расчет значения для пид
-  fanpid->Compute();
   if ( this->newstate != NULL) {
     delete this->state;
     this->state = this->newstate;
     this->newstate = NULL;
   }
   this->ReadPins();
+  // Расчёт ПИД — после чтения датчиков, иначе он работает
+  // по значению температуры из прошлого цикла
+  fanpid->Compute();
   this->state->encoder();
   this->state->loop();
   this->EndLoop();
@@ -278,4 +279,11 @@ void  Thermofan::SetState(State* state) {
     delete this->newstate;
   }
   this->newstate = state;
+}
+
+// Применение коэффициентов ПИД на лету: в конструктор PID они передаются
+// по значению, поэтому без SetTunings новые KP/KI/KD действовали бы
+// только после перезагрузки
+void  Thermofan::applyPidTunings() {
+  this->fanpid->SetTunings(KP, KI, KD);
 }

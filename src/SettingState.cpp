@@ -74,6 +74,8 @@ void SettingState::encoder() {
         context->echoDisplay(String(KD,3), 3, 0);
       break;
   }
+  // применяем новые коэффициенты сразу, а не после перезагрузки
+  context->applyPidTunings();
 }
 
 SettingState::~SettingState() {
