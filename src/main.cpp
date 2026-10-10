@@ -15,7 +15,7 @@ void setup() {
   display.begin();
   input.begin();
   fan.begin();
-  dimmer.begin();     // Timer2 + детектор нуля
+  dimmer.begin();     // Timer1 (CTC) + детектор нуля
   thermofan.begin();
 }
 
