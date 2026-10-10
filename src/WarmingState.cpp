@@ -12,7 +12,7 @@ WarmingState& WarmingState::instance(Thermofan& context) {
 }
 
 void WarmingState::entry() {
-  display.showStateLabel(S_WARMING);
+  display.setStateLabel(S_WARMING);
   context.setHeaterPower(context.heaterPower());
 }
 

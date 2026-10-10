@@ -15,6 +15,7 @@ class SettingState : public State {
   private:
     bool oldButtonChange = false;  // прошлое состояние кнопки энкодера
     uint8_t ksel = 0;              // 0 — P, 1 — I, 2 — D
+    void showK();                  // вывести выбранный коэффициент на экран
 };
 
 #endif

@@ -12,7 +12,6 @@ class Input {
     void onEncoderIsr();            // вызывается из ISR INT0
 
     int takeEncoderDelta();         // атомарно забрать накопленное смещение
-    bool consumeTurned();           // true один раз после поворота энкодера
     bool encoderToggle() const { return encButtonChange; } // чем управляем
     bool savePressedEdge() const { return savePressed; }   // фронт нажатия
     bool saveHeld() const { return saveWasPressed; }       // зажата сейчас
@@ -25,7 +24,6 @@ class Input {
 
     // общее с ISR энкодера — volatile
     volatile int encCounter = 0;
-    volatile bool turned = false;
     volatile unsigned long lastTick = 0;
     volatile bool direction = 0;
     volatile bool state0 = 0, lastState = 0, turnFlag = 0;

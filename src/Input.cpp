@@ -40,7 +40,6 @@ void Input::onEncoderIsr() {
       } else {
         encCounter += iterCount;
       }
-      turned = true;
     }
     lastTick = tickEncoder;
     lastState = state0;
@@ -53,12 +52,6 @@ int Input::takeEncoderDelta() {
   encCounter = 0;
   interrupts();
   return delta;
-}
-
-bool Input::consumeTurned() {
-  bool result = turned;
-  turned = false;
-  return result;
 }
 
 // 8 чтений: true, если хоть одно HIGH

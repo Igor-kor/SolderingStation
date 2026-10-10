@@ -35,7 +35,6 @@ class Thermofan {
     PID* pid = nullptr;
     double Input = 0, Output = 0, Setpoint = 0;
     int speedfan = 0;                // текущая скорость вентилятора, %
-    bool row1Dirty = true;           // перерисовать строку 1 дисплея
 };
 
 #endif

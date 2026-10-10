@@ -13,9 +13,21 @@ SettingState& SettingState::instance(Thermofan& context) {
 }
 
 void SettingState::entry() {
-  display.showStateLabel(S_SETTING);
-  display.clearPidLine();
-  oldButtonChange = context.encoderTargetIsTemp();
+  context.applyPidTunings();   // на случай правок до перезагрузки
+  display.setStateLabel(S_SETTING);
+  showK();
+}
+
+void SettingState::showK() {
+  Settings& s = context.settings();
+  char buf[12];
+  const char* key;
+  switch (ksel) {
+    case 0: key = "P"; dtostrf(s.kp, 0, 3, buf); break;
+    case 1: key = "I"; dtostrf(s.ki, 0, 3, buf); break;
+    default: key = "D"; dtostrf(s.kd, 0, 3, buf); break;
+  }
+  display.showPid(key, buf);
 }
 
 void SettingState::loop() {
@@ -38,24 +50,12 @@ void SettingState::encoder() {
     ksel = (ksel + 1) % 3;
   }
   Settings& s = context.settings();
-  char buf[12];
   switch (ksel) {
-    case 0:
-      s.kp += delta / 100.0;
-      dtostrf(s.kp, 0, 3, buf);
-      display.drawPid("P", buf);
-      break;
-    case 1:
-      s.ki += delta / 100.0;
-      dtostrf(s.ki, 0, 3, buf);
-      display.drawPid("I", buf);
-      break;
-    case 2:
-      s.kd += delta / 100.0;
-      dtostrf(s.kd, 0, 3, buf);
-      display.drawPid("D", buf);
-      break;
+    case 0: s.kp += delta / 100.0; break;
+    case 1: s.ki += delta / 100.0; break;
+    case 2: s.kd += delta / 100.0; break;
   }
+  showK();
   // применяем новые коэффициенты сразу, а не после перезагрузки
   context.applyPidTunings();
 }

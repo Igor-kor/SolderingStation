@@ -13,7 +13,7 @@ WaitingState& WaitingState::instance(Thermofan& context) {
 }
 
 void WaitingState::entry() {
-  display.showStateLabel(S_WAITING);
+  display.setStateLabel(S_WAITING);
 }
 
 void WaitingState::loop() {

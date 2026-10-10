@@ -37,7 +37,6 @@ void Thermofan::tick() {
     state = pendingState;
     pendingState = nullptr;
     state->entry();
-    row1Dirty = true;
   }
   input.update();
   Input = thermocouple.readTemperature();
@@ -55,12 +54,7 @@ void Thermofan::tick() {
     setState(OverheatState::instance(*this));
   }
   fan.setPercent(speedfan);
-  // строка 1 обновляется при повороте энкодера и смене скорости
-  if (row1Dirty || input.consumeTurned()) {
-    display.updateRow1((int)Setpoint, store.settings.fanSpeed, speedfan);
-    row1Dirty = false;
-  }
-  display.update((int)Input, (int)Output);
+  display.update((int)Input, (int)Setpoint, fanTarget(), (int)Output);
 #ifdef DEBUG_PID_SERIAL
   Serial.print(F("t=")); Serial.print((int)Input);
   Serial.print(F(" out=")); Serial.print((int)Output);
@@ -77,9 +71,7 @@ void Thermofan::setHeaterPower(int ticks) {
 }
 
 void Thermofan::setFanPercent(int percent) {
-  if (percent == speedfan) return;
   speedfan = percent;
-  row1Dirty = true;   // значение на дисплее изменилось
 }
 
 int Thermofan::fanTarget() const {

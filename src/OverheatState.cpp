@@ -13,7 +13,7 @@ OverheatState& OverheatState::instance(Thermofan& context) {
 }
 
 void OverheatState::entry() {
-  display.showStateLabel(S_OVERHEAT);
+  display.setStateLabel(S_OVERHEAT);
 }
 
 void OverheatState::loop() {

@@ -13,7 +13,7 @@ CoolingState& CoolingState::instance(Thermofan& context) {
 }
 
 void CoolingState::entry() {
-  display.showStateLabel(S_COOLING);
+  display.setStateLabel(S_COOLING);
 }
 
 void CoolingState::loop() {
