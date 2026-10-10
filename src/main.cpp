@@ -11,14 +11,15 @@
 #include "Thermofan.h"
 
 U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);
-unsigned long lastTickEncoder;
-bool encDirection = 0;
-int encCounter = 0;
-bool echoEncoder = true;
-bool state0, lastState, turnFlag = false;
+// Общие с прерываниями (INT0 энкодер, INT1 детектор нуля, Timer2 диммер) — обязательно volatile
+volatile unsigned long lastTickEncoder;
+volatile bool encDirection = 0;
+volatile int encCounter = 0;
+volatile bool echoEncoder = true;
+volatile bool state0, lastState, turnFlag = false;
 //uint32_t mil = 0; //текущие милисекунды для вывода на экран
-int countzerocross = 0;
-int warmcount = 10;
+volatile int countzerocross = 0;
+volatile int warmcount = 10;
 bool statewarm = false;
 bool oldstatewarm = false;
 // PID

@@ -6,13 +6,13 @@
 #include "SettingState.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern unsigned long lastTickEncoder;
-extern bool encDirection;
-extern int encCounter;
-extern bool echoEncoder;
-extern bool state0, lastState, turnFlag;
-extern int countzerocross;
-extern int warmcount;
+extern volatile unsigned long lastTickEncoder;
+extern volatile bool encDirection;
+extern volatile int encCounter;
+extern volatile bool echoEncoder;
+extern volatile bool state0, lastState, turnFlag;
+extern volatile int countzerocross;
+extern volatile int warmcount;
 extern bool statewarm;
 extern bool oldstatewarm;
 extern double KP,KI,KD;
@@ -36,7 +36,9 @@ void SettingState::loop() {
     echoEncoder = true;
     return;
   }
+  noInterrupts();
   warmcount = 0;
+  interrupts();
   if (context->speedfan > 0) {
     echoEncoder = true;
   }
@@ -44,26 +46,30 @@ void SettingState::loop() {
 }
 
 void SettingState::encoder() {
+  // 16-битный encCounter пишется в ISR энкодера — читаем атомарно
+  noInterrupts();
+  int delta = encCounter;
+  interrupts();
   if (context->encButtonChange != this->oldButtonChange) {
     this->oldButtonChange = context->encButtonChange;
     this->Ksave++;
     if(this->Ksave>2)
       this->Ksave=0;
-  }  
+  }
    u8x8.clearLine(3);
   switch(this->Ksave){
     case 0:
-        KP += encCounter/100.0;
+        KP += delta/100.0;
         context->echoDisplay(String("P"), 3, 7);
         context->echoDisplay(String(KP,3), 3, 0);
       break;
     case 1:
-        KI += encCounter/100.0;
+        KI += delta/100.0;
         context->echoDisplay(String("I"), 3, 7);
         context->echoDisplay(String(KI,3), 3, 0);
       break;
     case 2:
-        KD += encCounter/100.0;
+        KD += delta/100.0;
         context->echoDisplay(String("D"), 3, 7);
         context->echoDisplay(String(KD,3), 3, 0);
       break;

@@ -6,13 +6,13 @@
 #include "SettingState.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern unsigned long lastTickEncoder;
-extern bool encDirection;
-extern  int encCounter, encCounterFan;
-extern  bool echoEncoder;
-extern  bool state0, lastState, turnFlag;
-extern int countzerocross;
-extern int warmcount;
+extern volatile unsigned long lastTickEncoder;
+extern volatile bool encDirection;
+extern volatile int encCounter;
+extern volatile bool echoEncoder;
+extern volatile bool state0, lastState, turnFlag;
+extern volatile int countzerocross;
+extern volatile int warmcount;
 extern bool statewarm;
 extern bool oldstatewarm;
 
@@ -38,11 +38,15 @@ void State::loop() {
 }
 
 void State::encoder() {
+  // 16-битный encCounter пишется в ISR энкодера — читаем атомарно
+  noInterrupts();
+  int delta = encCounter;
+  interrupts();
   if (context->encButtonChange) {
-    context->Setpoint += encCounter;
+    context->Setpoint += delta;
   }
   else {
-    context->echospeedfan += encCounter;
+    context->echospeedfan += delta;
   }
   if (context->Setpoint < 10)context->Setpoint = 10;
   if (context->Setpoint > 500)context->Setpoint = 500;

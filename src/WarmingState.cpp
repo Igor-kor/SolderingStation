@@ -6,13 +6,13 @@
 #include "SettingState.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern unsigned long lastTickEncoder;
-extern bool encDirection;
-extern int encCounter;
-extern bool echoEncoder;
-extern bool state0, lastState, turnFlag;
-extern int countzerocross;
-extern int warmcount;
+extern volatile unsigned long lastTickEncoder;
+extern volatile bool encDirection;
+extern volatile int encCounter;
+extern volatile bool echoEncoder;
+extern volatile bool state0, lastState, turnFlag;
+extern volatile int countzerocross;
+extern volatile int warmcount;
 extern bool statewarm;
 extern bool oldstatewarm;
 
@@ -22,7 +22,9 @@ WarmingState::WarmingState(Thermofan* context) : State(context) {
 #endif
   u8x8.clearLine(2);
   context->echoDisplay(S_WARMING, 2, 0);
+  noInterrupts();
   warmcount = context->Output;
+  interrupts();
 }
 void WarmingState::loop() {
 #ifdef DEBAGSERIAL
@@ -35,8 +37,10 @@ void WarmingState::loop() {
     context->SetState(new CoolingState(context));
     return;
   }
-  //нагрев тена
+  //нагрев тена: warmcount читается в ISR Timer2 — пишем атомарно
+  noInterrupts();
   warmcount = context->Output;
+  interrupts();
 }
 
 WarmingState::~WarmingState() {

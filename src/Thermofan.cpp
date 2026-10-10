@@ -4,13 +4,13 @@
 #include "EepromString.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern unsigned long lastTickEncoder;
-extern bool encDirection;
-extern int encCounter;
-extern bool echoEncoder;
-extern bool state0, lastState, turnFlag;
-extern int countzerocross;
-extern int warmcount;
+extern volatile unsigned long lastTickEncoder;
+extern volatile bool encDirection;
+extern volatile int encCounter;
+extern volatile bool echoEncoder;
+extern volatile bool state0, lastState, turnFlag;
+extern volatile int countzerocross;
+extern volatile int warmcount;
 extern bool statewarm;
 extern bool oldstatewarm;
 extern double KP,KI,KD;
@@ -271,7 +271,10 @@ void  Thermofan::loopth() {
 
 void  Thermofan::EndLoop() {
   analogWrite(SPEED_FAN_PIN, map(speedfan, 0, 100, 0, 255));
+  // encCounter пишется в ISR энкодера — сбрасываем атомарно
+  noInterrupts();
   encCounter = 0;
+  interrupts();
 }
 
 void  Thermofan::SetState(State* state) {

@@ -6,13 +6,13 @@
 #include "SettingState.h"
 
 extern U8X8_SSD1306_128X32_UNIVISION_HW_I2C u8x8;
-extern unsigned long lastTickEncoder;
-extern bool encDirection;
-extern int encCounter;
-extern bool echoEncoder;
-extern bool state0, lastState, turnFlag;
-extern int countzerocross;
-extern int warmcount;
+extern volatile unsigned long lastTickEncoder;
+extern volatile bool encDirection;
+extern volatile int encCounter;
+extern volatile bool echoEncoder;
+extern volatile bool state0, lastState, turnFlag;
+extern volatile int countzerocross;
+extern volatile int warmcount;
 extern bool statewarm;
 extern bool oldstatewarm;
 
@@ -42,7 +42,9 @@ void CoolingState::loop() {
     context->SetState(new WarmingState(context));
     return;
   }
+  noInterrupts();
   warmcount = 0;
+  interrupts();
   if(context->speedfan != 100) {
      echoEncoder = true;
   }
